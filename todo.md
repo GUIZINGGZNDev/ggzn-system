@@ -184,3 +184,12 @@
 - [x] Adicionar explicação curta e prefixo visível em cada comando
 - [x] Preservar avisos de segurança e níveis de acesso nos menus
 - [x] Atualizar testes dos menus e validar build/publicação
+
+- [x] Auditar todos os comandos implementados e separar por categoria e cargo
+- [x] Expandir menu principal e submenus com lista longa completa
+- [x] Adicionar descrições linha a linha para comandos e variações de uso
+- [x] Atualizar testes de cobertura do menu longo e validar build/publicação
+
+- [x] Adicionar teste do menu principal longo com prefixo dinâmico
+- [x] Cobrir submenus cargos, zoeira, info e config com linhas descritivas
+- [x] Salvar checkpoint publicado da versão do menu longo

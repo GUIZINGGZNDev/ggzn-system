@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { WASocket, WAMessage } from "@whiskeysockets/baileys";
-import { applyPrefixAction, atLeast, calculate, getMenu, handleIncomingMessage, moderationEffect, requiredRoleForCommand, safeZoeiraResponse, withTimeout, MEDIA_TIMEOUT_MS } from "./commands";
+import { applyPrefixAction, atLeast, calculate, getMainMenu, getMenu, handleIncomingMessage, moderationEffect, requiredRoleForCommand, safeZoeiraResponse, withTimeout, MEDIA_TIMEOUT_MS } from "./commands";
 import { getOrCreateGroup } from "../db";
 
 function ownerMessage(text: string, quoted = false) {
@@ -41,11 +41,23 @@ describe("GGZN command permissions", () => {
     const admMenu = getMenu("adm", "#");
     const memberMenu = getMenu("membros", "?");
     expect(admMenu).toContain("MENU ADM");
-    expect(admMenu).toContain("#banir @membro — remove uma pessoa do grupo");
-    expect(admMenu).toContain("Atenção: comandos ADM exigem cargo compatível.");
-    expect(memberMenu).toContain("?sticker — converte imagem em figurinha");
+    expect(admMenu).toContain("#banir @membro — remove definitivamente um membro");
+    expect(admMenu).toContain("Requisito: Moderador para silenciar/anunciar/limpar.");
+    expect(admMenu.split("\\n").length).toBeGreaterThan(12);
+    expect(memberMenu).toContain("?sticker — converte a imagem enviada em figurinha");
     expect(memberMenu).toContain("?clima cidade — consulta o clima");
     expect(getMenu("inexistente")).toBeUndefined();
+  });
+
+  it("covers the long main menu and every category with dynamic prefixes", () => {
+    const main = getMainMenu("$");
+    expect(main).toContain("$menu adm — 14 comandos de administração");
+    expect(main).toContain("$sticker — imagem para figurinha");
+    expect(main.split("\\n").length).toBeGreaterThan(12);
+    expect(getMenu("cargos", "$")).toContain("$promover moderador @membro");
+    expect(getMenu("zoeira", "$")).toContain("$trava-zap — retorna aviso e permanece bloqueado");
+    expect(getMenu("info", "$")).toContain("$help categoria — abre um submenu específico");
+    expect(getMenu("config", "$")).toContain("$prefixo add ? — adiciona um prefixo alternativo");
   });
 
   it("assigns safe permission levels and effects to moderation commands", () => {
