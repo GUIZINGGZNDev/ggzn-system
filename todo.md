@@ -218,3 +218,11 @@
 - [x] Criar nova hierarquia visual profissional sem textos explicativos
 - [x] Organizar categorias e acessos em linhas curtas e consistentes
 - [x] Atualizar teste estrutural do menu e publicar a versão final
+
+- [x] Auditar envio central e localizar conversão de `\\n` literal
+- [x] Normalizar `\\n` escapado para quebra real em todas as respostas
+- [x] Adicionar teste de regressão para menu e mensagens gerais
+- [x] Validar WhatsApp, build e publicar a correção
+
+- [x] Testar `handleIncomingMessage` com `!menu` e garantir resposta sem `\\n` literal
+- [x] Registrar que a validação visual real no WhatsApp depende de uma nova mensagem enviada pelo proprietário; regressão automatizada aprovada e `/api/bot/status` confirmado em HTTP 200 com `connected`

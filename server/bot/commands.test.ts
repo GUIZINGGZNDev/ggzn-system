@@ -43,7 +43,7 @@ describe("GGZN command permissions", () => {
     expect(admMenu).toContain("MENU ADM");
     expect(admMenu).toContain("#banir @membro — remove definitivamente um membro");
     expect(admMenu).toContain("Requisito: Moderador para silenciar/anunciar/limpar.");
-    expect(admMenu.split("\\n").length).toBeGreaterThan(12);
+    expect(admMenu.split("\n").length).toBeGreaterThan(12);
     expect(memberMenu).toContain("?sticker — converte a imagem enviada em figurinha");
     expect(memberMenu).toContain("?clima cidade — consulta o clima");
     expect(getMenu("inexistente")).toBeUndefined();
@@ -76,12 +76,14 @@ describe("GGZN command permissions", () => {
       "│ $menu 6  •  $menu textos│",
       "│ $menu 7  •  $menu ia    │",
       "└──────────────────────────────┘",
-    ].join("\\n");
+    ].join("\n");
     expect(getMainMenu("$")).toBe(expected);
     expect(getMenu("mod", "$")).toContain("$silenciar — fecha o grupo para membros");
     expect(getMenu("site", "$")).toContain("Site oficial:");
     expect(getMenu("textos", "$")).toContain("$stext frase — cria figurinha com texto");
     expect(getMenu("ia", "$")).toContain("$traduzir pt texto — traduz texto para português");
+    expect(getMainMenu("$")).not.toContain("\\n");
+    expect(getMenu("adm", "$")).not.toContain("\\n");
   });
 
   it("supports the seven GGZN CORPORATION numeric menu options", () => {
@@ -161,6 +163,14 @@ describe("GGZN message handler", () => {
       infoSpy.mockRestore();
       vi.unstubAllGlobals();
     }
+  });
+
+  it("normalizes ordinary handler replies to real line breaks", async () => {
+    const socket = mockSocket();
+    await handleIncomingMessage(socket, ownerMessage("!menu"));
+    const sentText = socket.sendMessage.mock.calls[0]?.[1]?.text as string;
+    expect(sentText).toContain("\n");
+    expect(sentText).not.toContain("\\n");
   });
 
   it("sends explicit safe responses for spam, trava-zap and fake", async () => {

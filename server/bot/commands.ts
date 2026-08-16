@@ -50,7 +50,7 @@ export const getMainMenu = (prefix: string) => [
   `│ ${prefix}menu 6  •  ${prefix}menu textos│`,
   `│ ${prefix}menu 7  •  ${prefix}menu ia    │`,
   "└──────────────────────────────┘",
-].join("\\n");
+].join("\n");
 const menus: Record<string, (prefix: string) => string> = {
   adm: (prefix) => [
     "*MENU ADM — CONTROLE DO GRUPO*",
@@ -71,7 +71,7 @@ const menus: Record<string, (prefix: string) => string> = {
     "",
     "Requisito: Moderador para silenciar/anunciar/limpar.",
     "Requisito: Administrador para banir, cargos, abrir, fechar e configurações.",
-  ].join("\\n"),
+  ].join("\n"),
   membros: (prefix) => [
     "*MENU MEMBROS — UTILIDADES*",
     "",
@@ -87,7 +87,7 @@ const menus: Record<string, (prefix: string) => string> = {
     commandLine(prefix, "menu", "abre o menu completo"),
     commandLine(prefix, "help membros", "abre este submenu"),
     commandLine(prefix, "prefixos", "mostra os prefixos aceitos"),
-  ].join("\\n"),
+  ].join("\n"),
   cargos: (prefix) => [
     "*MENU CARGOS — HIERARQUIA*",
     "",
@@ -99,7 +99,7 @@ const menus: Record<string, (prefix: string) => string> = {
     "",
     "Níveis: Dono > Administrador > Moderador > Membro.",
     "Promoções exigem administrador e funcionam em grupos.",
-  ].join("\\n"),
+  ].join("\n"),
   zoeira: (prefix) => [
     "*MENU ZOEIRA — DIVERSÃO CONTROLADA*",
     "",
@@ -114,7 +114,7 @@ const menus: Record<string, (prefix: string) => string> = {
     "",
     "Limite de uso aplicado por membro em funções de zoeira.",
     "Trava-zap e spam destrutivo nunca são executados pelo sistema.",
-  ].join("\\n"),
+  ].join("\n"),
   info: (prefix) => [
     "*MENU INFO — SISTEMA*",
     "",
@@ -127,7 +127,7 @@ const menus: Record<string, (prefix: string) => string> = {
     "",
     "GGZN SYSTEM — Node.js + Baileys.",
     "Sessão, cargos, prefixos e comandos são persistidos por grupo.",
-  ].join("\\n"),
+  ].join("\n"),
   mod: (prefix) => [
     "*GGZN CORPORATION / MODERAÇÃO*",
     "",
@@ -140,7 +140,7 @@ const menus: Record<string, (prefix: string) => string> = {
     commandLine(prefix, "remover @membro", "remove um membro do grupo"),
     "",
     "Use `menu adm` para ver todas as ações administrativas.",
-  ].join("\\n"),
+  ].join("\n"),
   site: (prefix) => [
     "*GGZN CORPORATION / SITE OFC*",
     "",
@@ -149,7 +149,7 @@ const menus: Record<string, (prefix: string) => string> = {
     "",
     commandLine(prefix, "menu", "volta ao painel principal"),
     "A conexão do bot permanece protegida e não é exibida publicamente.",
-  ].join("\\n"),
+  ].join("\n"),
   textos: (prefix) => [
     "*GGZN CORPORATION / TEXTOS*",
     "",
@@ -159,7 +159,7 @@ const menus: Record<string, (prefix: string) => string> = {
     commandLine(prefix, "citacao", "envia uma citação do sistema"),
     commandLine(prefix, "anunciar texto", "publica texto como anúncio"),
     commandLine(prefix, "calcular 2+2", "calcula uma expressão"),
-  ].join("\\n"),
+  ].join("\n"),
   ia: (prefix) => [
     "*GGZN CORPORATION / IA*",
     "",
@@ -170,7 +170,7 @@ const menus: Record<string, (prefix: string) => string> = {
     commandLine(prefix, "piada", "resposta automática rápida"),
     "",
     "Auto-respostas seguras e integrações possuem timeout.",
-  ].join("\\n"),
+  ].join("\n"),
   config: (prefix) => [
     "*MENU CONFIGURAÇÕES — POR GRUPO*",
     "",
@@ -186,7 +186,7 @@ const menus: Record<string, (prefix: string) => string> = {
     "",
     "Configurações exigem cargo de Administrador.",
     "Prefixos disponíveis por padrão: ! / # .",
-  ].join("\\n"),
+  ].join("\n"),
 };
 
 export function getMenu(section?: string, prefix = "!") { return section && menus[section] ? menus[section](prefix) : undefined; }
@@ -375,7 +375,7 @@ async function translate(args: string[]) {
 }
 async function lookupInfo(term: string) {
   if (!term) return "Use !info com um termo de busca.";
-  try { const response = await fetchWithTimeout(`https://pt.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(term)}`, 3500, "info"); const data = await response.json() as { extract?: string; content_urls?: { desktop?: { page?: string } } }; return data.extract ? `${data.extract.slice(0, 600)}${data.content_urls?.desktop?.page ? `\\n${data.content_urls.desktop.page}` : ""}` : "Nenhuma informação encontrada."; } catch { return "Não foi possível buscar informações agora."; }
+  try { const response = await fetchWithTimeout(`https://pt.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(term)}`, 3500, "info"); const data = await response.json() as { extract?: string; content_urls?: { desktop?: { page?: string } } }; return data.extract ? `${data.extract.slice(0, 600)}${data.content_urls?.desktop?.page ? `\n${data.content_urls.desktop.page}` : ""}` : "Nenhuma informação encontrada."; } catch { return "Não foi possível buscar informações agora."; }
 }
 
 function escapeXml(value: string) { return value.replace(/[&<>\"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[char] ?? char); }
