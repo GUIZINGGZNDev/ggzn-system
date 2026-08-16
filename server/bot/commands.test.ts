@@ -49,14 +49,27 @@ describe("GGZN command permissions", () => {
     expect(getMenu("inexistente")).toBeUndefined();
   });
 
-  it("covers the GGZN CORPORATION panel and categories with dynamic prefixes", () => {
-    const main = getMainMenu("$");
-    expect(main).toContain("│          GGZN CORPORATION              │");
-    expect(main).toContain("Prefixo atual: [ $ ]");
-    expect(main).toContain("👑 [1]  ADM             ▸ $menu 1 ou $menu adm");
-    expect(main).toContain("🤖 [7]  IA / AUTO-RESP  ▸ $menu 7 ou $menu ia");
-    expect(main).toContain("💡 Use $menu + número ou nome da categoria.");
-    expect(main.split("\\n").length).toBeGreaterThan(16);
+  it("matches the user-provided GGZN CORPORATION menu layout exactly", () => {
+    const expected = [
+      "╭────────────────────────────────────────╮",
+      "  │ GGZN CORPORATION │",
+      "  │ MENU OFICIAL │",
+      "╰────────────────────────────────────────╯",
+      "  Prefixo atual: [ $ ]",
+      "",
+      "  │ 👑 [1]  ADM            ▸ $menu 1 ou $menu adm",
+      "  │ 🎭 [2]  ZOEIRA         ▸ $menu 2 ou $menu zoeira",
+      "  │ ℹ️  [3]  INFO           ▸ $menu 3 ou $menu info",
+      "  │ 🛡️  [4]  MODERAÇÃO      ▸ $menu 4 ou $menu mod",
+      "  │ 🌐 [5]  SITE OFICIAL   ▸ $menu 5 ou $menu site",
+      "  │ 📝 [6]  TEXTOS         ▸ $menu 6 ou $menu textos",
+      "  │ 🤖 [7]  IA / AUTO-RESP ▸ $menu 7 ou $menu ia",
+      "",
+      "──────────────────────────────────────────",
+      "  💡 Use $menu + número ou nome da categoria.",
+      "  📌 Exemplo: $menu 1  ou  $menu adm",
+    ].join("\\n");
+    expect(getMainMenu("$")).toBe(expected);
     expect(getMenu("mod", "$")).toContain("$silenciar — fecha o grupo para membros");
     expect(getMenu("site", "$")).toContain("Site oficial:");
     expect(getMenu("textos", "$")).toContain("$stext frase — cria figurinha com texto");
@@ -66,7 +79,7 @@ describe("GGZN command permissions", () => {
   it("supports the seven GGZN CORPORATION numeric menu options", () => {
     const main = getMainMenu("!");
     expect(main).toContain("🛡️  [4]  MODERAÇÃO      ▸ !menu 4 ou !menu mod");
-    expect(main).toContain("🌐 [5]  SITE OFICIAL    ▸ !menu 5 ou !menu site");
+    expect(main).toContain("🌐 [5]  SITE OFICIAL   ▸ !menu 5 ou !menu site");
     expect(MENU_NUMBER_MAP["1"]).toBe("adm");
     expect(MENU_NUMBER_MAP["2"]).toBe("zoeira");
     expect(MENU_NUMBER_MAP["7"]).toBe("ia");

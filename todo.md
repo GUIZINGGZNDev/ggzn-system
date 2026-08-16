@@ -210,3 +210,7 @@
 - [x] Aplicar moldura maior e cabeçalho GGZN CORPORATION conforme referência
 - [x] Adicionar ícones, prefixo entre colchetes e comandos alinhados
 - [x] Atualizar rodapé de instruções, testes e publicação
+
+- [x] Restaurar exatamente o menu fornecido pelo usuário, sem alterações de moldura ou espaçamento
+- [x] Garantir que somente o prefixo seja dinâmico
+- [x] Criar teste estrutural do menu e publicar a correção
