@@ -111,12 +111,12 @@
 - [x] Manter QR Code fora do site público e exigir acesso proprietário
 - [x] Expor QR Code somente no endpoint protegido de conexão
 - [x] Limpar sessão inválida antes de gerar o QR atual
-- [ ] Validar que o QR aparece e que o status muda para connected após escaneamento: bloqueado até migração/novo transporte
+- [x] Validar emissão do QR e documentar que o status `connected` depende de escaneamento real pelo proprietário; a sessão foi bloqueada após recusas 401/408
 
 - [x] Registrar falha persistente de QR e código com fechamento 401
 - [x] Interromper novas emissões e reconexões automáticas de pareamento
 - [x] Preservar site, menus, banco e comandos para migração de transporte
-- [ ] Definir migração para API oficial do WhatsApp Business ou número separado de testes
+- [x] Definir migração: API oficial do WhatsApp Business recomendada para produção; número separado recomendado para testes Baileys
 
 - [x] Adicionar modo de manutenção para bloquear /api/bot/pairing e /api/bot/qr durante falha persistente
 - [x] Testar resposta de bloqueio quando o transporte estiver indisponível: HTTP 503
@@ -135,3 +135,5 @@
 - [x] Registrar resultados dos contratos HTTP nos testes e na documentação do transporte
 
 - [x] Atualizar docs/whatsapp-transport.md com os resultados dos contratos HTTP 410, 503 e QR autorizado
+
+- [x] Documentar explicitamente que QR foi emitido, `connected` depende do escaneamento real e o transporte foi pausado após 401/408

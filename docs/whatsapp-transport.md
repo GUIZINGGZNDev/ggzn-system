@@ -9,3 +9,5 @@ QRs e códigos de conexão são temporários, devem ser usados somente pelo prop
 ## Contratos de conexão validados
 
 Os testes de contrato confirmam que `/api/bot/pairing` retorna **HTTP 410** e não inclui `qrDataUrl`, pois o código numérico foi desativado nesta versão. O modo de manutenção padrão faz `/api/bot/pairing` e `/api/bot/qr` retornarem **HTTP 503** para impedir novas emissões durante a falha persistente. Em ambiente controlado, com manutenção desativada e credencial proprietária, somente `/api/bot/qr` pode retornar `qrDataUrl`; o contrato está coberto por `server/bot/routes.contract.test.ts`.
+
+O QR foi emitido com sucesso durante a validação, mas o estado `connected` só pode ser confirmado depois do escaneamento real pelo proprietário no WhatsApp. Como as tentativas de QR e código terminaram com recusas 401 e 408, o transporte foi pausado por padrão para evitar novas emissões e possíveis bloqueios; a confirmação de `connected` permanece uma etapa operacional do proprietário após a futura reativação ou migração.
