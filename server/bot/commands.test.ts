@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { WASocket, WAMessage } from "@whiskeysockets/baileys";
-import { applyPrefixAction, atLeast, calculate, getMainMenu, getMenu, handleIncomingMessage, MENU_NUMBER_MAP, moderationEffect, requiredRoleForCommand, safeZoeiraResponse, withTimeout, MEDIA_TIMEOUT_MS } from "./commands";
+import { applyPrefixAction, atLeast, calculate, formatJoinMessage, getMainMenu, getMenu, handleGroupParticipantsUpdate, handleIncomingMessage, MENU_NUMBER_MAP, moderationEffect, requiredRoleForCommand, safeZoeiraResponse, withTimeout, MEDIA_TIMEOUT_MS } from "./commands";
 import { getOrCreateGroup } from "../db";
 
 function ownerMessage(text: string, quoted = false) {
@@ -19,6 +19,15 @@ function mockSocket() {
 }
 
 describe("GGZN command permissions", () => {
+  it("renders safe placeholders for join messages", () => {
+    expect(formatJoinMessage("Olá {nome}, bem-vindo ao {grupo}! {mention} {numero}", "5534999999999@s.whatsapp.net", "GGZN TESTE")).toBe("Olá @5534999999999, bem-vindo ao GGZN TESTE! @5534999999999 5534999999999");
+  });
+
+  it("sends a grouped welcome event with real mentions", async () => {
+    const socket = mockSocket();
+    await handleGroupParticipantsUpdate(socket, { id: "test-welcome@g.us", action: "add", participants: ["5534999999999@s.whatsapp.net"] });
+    expect(socket.sendMessage).toHaveBeenCalledWith("test-welcome@g.us", expect.objectContaining({ mentions: ["5534999999999@s.whatsapp.net"], text: expect.stringContaining("BEM-VINDO") }));
+  });
   it("respects the role hierarchy", () => {
     expect(atLeast("owner", "admin")).toBe(true);
     expect(atLeast("admin", "moderator")).toBe(true);

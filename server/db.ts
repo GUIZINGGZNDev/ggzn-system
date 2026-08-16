@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { AutoReply, BotRule, InsertUser, botGroups, botMembers, botSessions, users } from "../drizzle/schema";
+import { AutoReply, BotRule, InsertUser, JoinMessages, botGroups, botMembers, botSessions, users } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -61,6 +61,12 @@ export type GroupConfig = {
   disabledCommands: string[];
   rules: BotRule[];
   autoReplies: AutoReply[];
+  joinMessages: JoinMessages;
+};
+
+export const DEFAULT_JOIN_MESSAGES: JoinMessages = {
+  welcome: { enabled: true, text: "*BEM-VINDO AO {grupo}!*\nOlá, {mention}! Leia as regras e aproveite o grupo." },
+  farewell: { enabled: true, text: "{mention} saiu do grupo. Até a próxima!" },
 };
 
 function parseJson<T>(value: string, fallback: T): T {
@@ -80,11 +86,11 @@ export async function getOrCreateGroup(jid: string, name = "Grupo sem nome"): Pr
   const load = (async () => {
     const db = await getDb();
     if (!db) {
-      const fallback = { jid, name, activePrefix: "!", prefixes: ["!", "/", "#", "."], disabledCommands: [], rules: [] as BotRule[], autoReplies: [] as AutoReply[] };
+      const fallback = { jid, name, activePrefix: "!", prefixes: ["!", "/", "#", "."], disabledCommands: [], rules: [] as BotRule[], autoReplies: [] as AutoReply[], joinMessages: DEFAULT_JOIN_MESSAGES };
       groupCache.set(jid, { value: fallback, expiresAt: Date.now() + GROUP_CACHE_TTL_MS });
       return fallback;
     }
-    await db.insert(botGroups).values({ jid, name, activePrefix: "!", prefixes: JSON.stringify(["!", "/", "#", "."]), disabledCommands: JSON.stringify([]) }).onDuplicateKeyUpdate({ set: { name } });
+    await db.insert(botGroups).values({ jid, name, activePrefix: "!", prefixes: JSON.stringify(["!", "/", "#", "."]), disabledCommands: JSON.stringify([]), joinMessages: JSON.stringify(DEFAULT_JOIN_MESSAGES) }).onDuplicateKeyUpdate({ set: { name } });
     const rows = await db.select().from(botGroups).where(eq(botGroups.jid, jid)).limit(1);
     const row = rows[0];
     const value = {
@@ -95,6 +101,7 @@ export async function getOrCreateGroup(jid: string, name = "Grupo sem nome"): Pr
       disabledCommands: row ? parseJson<string[]>(row.disabledCommands, []) : [],
       rules: row ? parseJson<Array<Partial<BotRule>>>(row.rules, []).map((rule) => ({ id: rule.id ?? String(Date.now()), text: rule.text ?? "", enabled: rule.enabled !== false })) : [],
       autoReplies: row ? parseJson<AutoReply[]>(row.autoReplies, []) : [],
+      joinMessages: row ? { ...DEFAULT_JOIN_MESSAGES, ...parseJson<Partial<JoinMessages>>(row.joinMessages, {}), welcome: { ...DEFAULT_JOIN_MESSAGES.welcome, ...parseJson<Partial<JoinMessages>>(row.joinMessages, {}).welcome }, farewell: { ...DEFAULT_JOIN_MESSAGES.farewell, ...parseJson<Partial<JoinMessages>>(row.joinMessages, {}).farewell } } : DEFAULT_JOIN_MESSAGES,
     };
     groupCache.set(jid, { value, expiresAt: Date.now() + GROUP_CACHE_TTL_MS });
     return value;
@@ -119,10 +126,11 @@ export async function listBotGroups(): Promise<GroupConfig[]> {
     disabledCommands: parseJson<string[]>(row.disabledCommands, []),
     rules: parseJson<Array<Partial<BotRule>>>(row.rules, []).map((rule) => ({ id: rule.id ?? String(Date.now()), text: rule.text ?? "", enabled: rule.enabled !== false })),
     autoReplies: parseJson<AutoReply[]>(row.autoReplies, []),
+    joinMessages: { ...DEFAULT_JOIN_MESSAGES, ...parseJson<Partial<JoinMessages>>(row.joinMessages, {}), welcome: { ...DEFAULT_JOIN_MESSAGES.welcome, ...parseJson<Partial<JoinMessages>>(row.joinMessages, {}).welcome }, farewell: { ...DEFAULT_JOIN_MESSAGES.farewell, ...parseJson<Partial<JoinMessages>>(row.joinMessages, {}).farewell } },
   }));
 }
 
-export async function updateGroupConfig(jid: string, patch: Partial<{ name: string; activePrefix: string; prefixes: string[]; disabledCommands: string[]; rules: BotRule[]; autoReplies: AutoReply[] }>) {
+export async function updateGroupConfig(jid: string, patch: Partial<{ name: string; activePrefix: string; prefixes: string[]; disabledCommands: string[]; rules: BotRule[]; autoReplies: AutoReply[]; joinMessages: JoinMessages }>) {
   groupCache.delete(jid);
   pendingGroupLoads.delete(jid);
   const db = await getDb();
@@ -135,6 +143,7 @@ export async function updateGroupConfig(jid: string, patch: Partial<{ name: stri
     disabledCommands: JSON.stringify(patch.disabledCommands ?? []),
     rules: JSON.stringify(patch.rules ?? []),
     autoReplies: JSON.stringify(patch.autoReplies ?? []),
+    joinMessages: JSON.stringify(patch.joinMessages ?? DEFAULT_JOIN_MESSAGES),
   }).onDuplicateKeyUpdate({
     set: {
       ...(patch.name !== undefined ? { name: patch.name } : {}),
@@ -143,6 +152,7 @@ export async function updateGroupConfig(jid: string, patch: Partial<{ name: stri
       ...(patch.disabledCommands !== undefined ? { disabledCommands: JSON.stringify(patch.disabledCommands) } : {}),
       ...(patch.rules !== undefined ? { rules: JSON.stringify(patch.rules) } : {}),
       ...(patch.autoReplies !== undefined ? { autoReplies: JSON.stringify(patch.autoReplies) } : {}),
+      ...(patch.joinMessages !== undefined ? { joinMessages: JSON.stringify(patch.joinMessages) } : {}),
     },
   });
 }

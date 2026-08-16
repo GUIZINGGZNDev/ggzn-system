@@ -1,0 +1,1 @@
+ALTER TABLE `bot_groups` ADD `joinMessages` varchar(8191) DEFAULT '{}' NOT NULL;

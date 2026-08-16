@@ -4,7 +4,7 @@ import P from "pino";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { updateSession } from "../db";
-import { commandLabel, handleIncomingMessage } from "./commands";
+import { commandLabel, handleGroupParticipantsUpdate, handleIncomingMessage } from "./commands";
 
 const PHONE = (process.env.BOT_PHONE ?? "5534991286637").replace(/\D/g, "");
 const SESSION_DIR = path.resolve(process.env.BOT_SESSION_DIR ?? ".bot-session");
@@ -105,6 +105,13 @@ export async function startBot() {
           const delay = code === 440 ? Math.min(3000 * state.reconnectAttempts, 9000) : 2500;
           state.reconnectTimer = setTimeout(() => { state.reconnectTimer = undefined; void startBot(); }, delay);
         }
+      }
+    });
+    sock.ev.on("group-participants.update", async (event) => {
+      try {
+        await handleGroupParticipantsUpdate(sock, event);
+      } catch (error) {
+        console.error("[GGZN] group participant event error", error);
       }
     });
     sock.ev.on("messages.upsert", async ({ messages }) => {

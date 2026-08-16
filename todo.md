@@ -277,3 +277,12 @@
 - [x] Adicionar testes de parsing, permissões, cooldown, persistência e respostas sem duplicação
 - [x] Validar TypeScript, Vitest, build, latência e publicar a nova versão
 
+
+- [x] Definir formato de boas-vindas e despedida personalizadas por grupo
+- [x] Persistir mensagens, estado ativo e variáveis de entrada/saída
+- [x] Processar eventos de participantes entrando e saindo do grupo
+- [x] Adicionar comandos administrativos para configurar e testar mensagens
+- [x] Atualizar menus ADM, Config e Info com boas-vindas/despedidas
+- [x] Adicionar testes de eventos, permissões, placeholders, cooldown e regressões
+- [x] Validar TypeScript, Vitest, build e publicar a nova versão
+
