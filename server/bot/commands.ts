@@ -343,28 +343,31 @@ async function reply(sock: WASocket, jid: string, text: string) {
   console.info(`[GGZN][message][sent] ${elapsed}ms jid=${jid} chars=${text.length}`);
 }
 
-const MENU_ANIMATION_MS: Record<string, number> = { principal: 140, adm: 220, adm1: 180, membros: 160, cargos: 150, zoeira: 200, info: 130, mod: 220, mod1: 180, site: 110, textos: 150, ia: 240, config: 210 };
-const MENU_ANIMATION_LABEL: Record<string, string> = { principal: "GGZN CORPORATION iniciando", adm: "Central ADM carregando", adm1: "Ferramentas avançadas abrindo", membros: "Utilidades do grupo preparando", cargos: "Hierarquia sendo sincronizada", zoeira: "Modo zoeira seguro ativando", info: "Informações do sistema carregando", mod: "Painel de moderação abrindo", mod1: "Controles de moderação preparando", site: "Acesso oficial carregando", textos: "Central de textos preparando", ia: "Núcleo IA iniciando", config: "Configurações do grupo carregando" };
-const MENU_ANIMATION_VIDEO_URL = "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-motion_c4b4c925.mp4";
-async function replyAnimated(sock: WASocket, jid: string, text: string, durationMs = 120) {
-  const presence = sock.sendPresenceUpdate ? sock.sendPresenceUpdate("composing", jid).catch(() => undefined) : Promise.resolve();
-  await Promise.race([presence, new Promise((resolve) => setTimeout(resolve, Math.max(60, Math.min(durationMs, 280))))]);
+const MENU_IMAGE_URLS: Record<string, string> = {
+  principal: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-main_6835aa78.jpg",
+  adm: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-admin_f7ddafa1.jpg",
+  adm1: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-admin_f7ddafa1.jpg",
+  membros: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-ai_f3682b40.jpg",
+  cargos: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-admin_f7ddafa1.jpg",
+  zoeira: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-main_6835aa78.jpg",
+  info: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-ai_f3682b40.jpg",
+  mod: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-admin_f7ddafa1.jpg",
+  mod1: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-admin_f7ddafa1.jpg",
+  site: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-main_6835aa78.jpg",
+  textos: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-ai_f3682b40.jpg",
+  ia: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-ai_f3682b40.jpg",
+  config: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-admin_f7ddafa1.jpg",
+};
+async function replyAnimated(sock: WASocket, jid: string, text: string) {
   await reply(sock, jid, text);
-  if (sock.sendPresenceUpdate) await sock.sendPresenceUpdate("paused", jid).catch(() => undefined);
 }
 async function replyMenuAnimated(sock: WASocket, jid: string, section: string, text: string) {
-  const duration = MENU_ANIMATION_MS[section] ?? MENU_ANIMATION_MS.principal;
-  console.info(`[GGZN][menu][animation] section=${section} label=${MENU_ANIMATION_LABEL[section] ?? MENU_ANIMATION_LABEL.principal} duration=${duration}ms`);
-  const presence = sock.sendPresenceUpdate ? sock.sendPresenceUpdate("composing", jid).catch(() => undefined) : Promise.resolve();
-  await Promise.race([presence, new Promise((resolve) => setTimeout(resolve, Math.max(60, Math.min(duration, 280))))]);
   try {
-    await sock.sendMessage(jid, { video: { url: MENU_ANIMATION_VIDEO_URL }, gifPlayback: true });
+    await sock.sendMessage(jid, { image: { url: MENU_IMAGE_URLS[section] ?? MENU_IMAGE_URLS.principal } });
     await reply(sock, jid, text);
   } catch (error) {
-    console.warn(`[GGZN][menu][animation-fallback] section=${section}`, error);
+    console.warn(`[GGZN][menu][image-fallback] section=${section}`, error);
     await reply(sock, jid, text);
-  } finally {
-    if (sock.sendPresenceUpdate) await sock.sendPresenceUpdate("paused", jid).catch(() => undefined);
   }
 }
 

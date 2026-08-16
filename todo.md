@@ -325,3 +325,11 @@
 - [x] Atualizar testes para validar duas mensagens e ordem de envio
 - [x] Validar TypeScript, Vitest, build e publicar a correção
 
+
+- [x] Gerar fotos estáticas premium para menu principal e categorias
+- [x] Armazenar as fotos fora do projeto e integrar seus URLs no runtime
+- [x] Enviar foto do menu sem legenda seguida do menu textual completo
+- [x] Remover completamente `composing` e `paused` do fluxo de menus
+- [x] Adicionar testes de seleção de foto, ordem de envio e ausência de presença
+- [x] Validar TypeScript, Vitest, build e publicar a nova versão
+

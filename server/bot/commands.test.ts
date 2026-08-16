@@ -145,11 +145,10 @@ describe("GGZN command permissions", () => {
 });
 
 describe("GGZN message handler", () => {
-  it("responds to a direct @bot mention with typing presence and a bounded reply", async () => {
+  it("responds to a direct @bot mention without typing presence and with a bounded reply", async () => {
     const socket = mockSocket();
     await handleIncomingMessage(socket, ownerMessage("@bot oi"));
-    expect(socket.sendPresenceUpdate).toHaveBeenCalledWith("composing", "test-handler@g.us");
-    expect(socket.sendPresenceUpdate).toHaveBeenCalledWith("paused", "test-handler@g.us");
+    expect(socket.sendPresenceUpdate).not.toHaveBeenCalled();
     expect(socket.sendMessage).toHaveBeenCalledWith("test-handler@g.us", expect.objectContaining({ text: expect.stringContaining("GGZN SYSTEM online") }));
   });
 
@@ -234,14 +233,13 @@ describe("GGZN message handler", () => {
     expect(sentText).not.toContain("\\n");
   });
 
-  it("animates the main menu, submenus and return navigation", async () => {
+  it("sends static menu photos without typing presence and keeps full text", async () => {
     const socket = mockSocket();
     await handleIncomingMessage(socket, ownerMessage("!menu"));
     await handleIncomingMessage(socket, ownerMessage("!menu ia"));
     await handleIncomingMessage(socket, ownerMessage("!menu voltar"));
-    expect(socket.sendPresenceUpdate).toHaveBeenCalledWith("composing", "test-handler@g.us");
-    expect(socket.sendPresenceUpdate).toHaveBeenCalledWith("paused", "test-handler@g.us");
-    expect(socket.sendMessage.mock.calls[0]?.[1]).toEqual(expect.objectContaining({ video: expect.objectContaining({ url: expect.stringContaining("ggzn-menu-motion") }), gifPlayback: true }));
+    expect(socket.sendPresenceUpdate).not.toHaveBeenCalled();
+    expect(socket.sendMessage.mock.calls[0]?.[1]).toEqual(expect.objectContaining({ image: expect.objectContaining({ url: expect.stringContaining("ggzn-menu-") }) }));
     expect(socket.sendMessage.mock.calls[1]?.[1]).toEqual(expect.objectContaining({ text: expect.stringContaining("GGZN CORPORATION") }));
   });
 
