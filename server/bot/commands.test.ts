@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { WASocket, WAMessage } from "@whiskeysockets/baileys";
-import { applyPrefixAction, atLeast, calculate, getMenu, handleIncomingMessage, moderationEffect, requiredRoleForCommand, safeZoeiraResponse } from "./commands";
+import { applyPrefixAction, atLeast, calculate, getMenu, handleIncomingMessage, moderationEffect, requiredRoleForCommand, safeZoeiraResponse, withTimeout, MEDIA_TIMEOUT_MS } from "./commands";
 import { getOrCreateGroup } from "../db";
 
 function ownerMessage(text: string, quoted = false) {
@@ -56,6 +56,11 @@ describe("GGZN command permissions", () => {
     expect(safeZoeiraResponse("spam")).toContain("bloqueado");
     expect(safeZoeiraResponse("trava-zap")).toContain("bloqueado");
     expect(safeZoeiraResponse("fake")).toContain("sem atribuição real");
+  });
+
+  it("bounds media processing with an explicit timeout", async () => {
+    expect(MEDIA_TIMEOUT_MS).toBe(7000);
+    await expect(withTimeout(new Promise((resolve) => setTimeout(resolve, 25)), 5)).rejects.toThrow("timeout");
   });
 
   it("returns safe defaults when database is not configured", async () => {

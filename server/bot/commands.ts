@@ -7,6 +7,10 @@ import { getPhone } from "./manager";
 const ROLE_LEVEL = { member: 1, moderator: 2, admin: 3, owner: 4 } as const;
 const funHits = new Map<string, number[]>();
 const funCommands = new Set(["fake", "gigante", "spam", "sorteio", "trava-zap"]);
+const roleCache = new Map<string, { role: Role; expiresAt: number }>();
+const ownerBootstrapped = new Set<string>();
+const ROLE_CACHE_TTL_MS = 15_000;
+export const MEDIA_TIMEOUT_MS = 7_000;
 export function applyPrefixAction(current: string[], active: string, action: "add" | "remove" | "set", next: string) {
   if (action === "remove") {
     const list = current.filter((item) => item !== next);
@@ -31,6 +35,7 @@ export function getMenu(section?: string) { return section && menus[section] ? m
 export function requiredRoleForCommand(command: string) { return ["silenciar", "limpar", "anunciar"].includes(command) ? "moderator" : ["banir", "remover", "promover", "rebaixar", "fechar", "abrir", "prefixo"].includes(command) ? "admin" : "member"; }
 export function moderationEffect(command: string) { return command === "silenciar" ? "announcement" : command === "limpar" ? "delete-quoted" : "none"; }
 export function safeZoeiraResponse(command: string) { if (command === "spam") return "Spam controlado bloqueado"; if (command === "trava-zap") return "Trava-zap bloqueado"; if (command === "fake") return "sem atribuição real"; return undefined; }
+export function commandLabel(message: WAMessage) { const match = textOf(message).trim().match(/^[!/#.\/]\s*([^\s]+)/); return match?.[1]?.toLowerCase(); }
 
 function textOf(message: WAMessage) {
   const content = message.message;
@@ -50,12 +55,20 @@ function mentioned(message: WAMessage) { return message.message?.extendedTextMes
 async function reply(sock: WASocket, jid: string, text: string) { await sock.sendMessage(jid, { text }); }
 
 async function requireRole(sock: WASocket, jid: string, sender: string, required: Role) {
-  const role = sender.replace(/\D/g, "") === getPhone() ? "owner" : await getMemberRole(jid, sender) as Role;
+  const owner = sender.replace(/\D/g, "") === getPhone();
+  const cacheKey = `${jid}:${sender}`;
+  const cached = roleCache.get(cacheKey);
+  const role = owner ? "owner" : cached && cached.expiresAt > Date.now() ? cached.role : await getCachedRole(cacheKey, jid, sender);
   if (!atLeast(role, required)) {
     await reply(sock, jid, `Acesso negado. Este comando exige o cargo *${required}*.`);
     return false;
   }
   return true;
+}
+async function getCachedRole(cacheKey: string, jid: string, sender: string): Promise<Role> {
+  const role = await getMemberRole(jid, sender) as Role;
+  roleCache.set(cacheKey, { role, expiresAt: Date.now() + ROLE_CACHE_TTL_MS });
+  return role;
 }
 
 export async function handleIncomingMessage(sock: WASocket, message: WAMessage) {
@@ -70,7 +83,10 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
   const command = rawCommand?.toLowerCase();
   if (!command || group.disabledCommands.includes(command)) return;
   const sender = senderOf(message);
-  if (isGroup(jid) && sender.replace(/\D/g, "") === getPhone()) await upsertMember(jid, sender, "owner");
+  if (isGroup(jid) && sender.replace(/\D/g, "") === getPhone() && !ownerBootstrapped.has(jid)) {
+    ownerBootstrapped.add(jid);
+    void upsertMember(jid, sender, "owner");
+  }
 
   if (funCommands.has(command)) {
     const now = Date.now();
@@ -114,6 +130,7 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
     const targetRole = command === "rebaixar" ? "member" : args[0]?.toLowerCase() === "moderador" ? "moderator" : "admin";
     await sock.groupParticipantsUpdate(jid, [target], command === "promover" ? "promote" : "demote");
     await upsertMember(jid, target, targetRole);
+    roleCache.delete(`${jid}:${target}`);
     await reply(sock, jid, `Cargo atualizado: ${targetRole === "moderator" ? "Moderador" : targetRole === "admin" ? "Administrador" : "Membro"}.`); return;
   }
   if (command === "fechar" || command === "abrir") {
@@ -128,8 +145,8 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
   }
   if (command === "anunciar") { if (await requireRole(sock, jid, sender, "moderator")) await reply(sock, jid, `*ANÚNCIO*\n${args.join(" ") || "Sem texto informado."}`); return; }
   if (command === "sticker" && message.message?.imageMessage) {
-    const media = await downloadMediaMessage(message, "buffer", {});
-    const sticker = await sharp(media as Buffer).resize(512, 512, { fit: "contain", background: "#ffffff" }).webp({ quality: 82 }).toBuffer();
+    const media = await withTimeout(downloadMediaMessage(message, "buffer", {}), MEDIA_TIMEOUT_MS);
+    const sticker = await withTimeout(sharp(media as Buffer).resize(512, 512, { fit: "contain", background: "#ffffff" }).webp({ quality: 82 }).toBuffer(), MEDIA_TIMEOUT_MS);
     await sock.sendMessage(jid, { sticker });
     return;
   }
@@ -170,18 +187,24 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
   if (response[command]) await reply(sock, jid, response[command]);
 }
 
+export async function withTimeout<T>(promise: Promise<T>, timeoutMs: number) { return await Promise.race([promise, new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), timeoutMs))]); }
+async function fetchWithTimeout(url: string, timeoutMs = 3500) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try { return await fetch(url, { signal: controller.signal }); } finally { clearTimeout(timer); }
+}
 async function weather(city: string) {
   if (!city) return "Use !clima com o nome de uma cidade.";
-  try { const response = await fetch(`https://wttr.in/${encodeURIComponent(city)}?format=3`); return `Clima: ${await response.text()}`; } catch { return "Não foi possível consultar o clima agora."; }
+  try { const response = await fetchWithTimeout(`https://wttr.in/${encodeURIComponent(city)}?format=3`); return `Clima: ${await response.text()}`; } catch { return "Não foi possível consultar o clima agora."; }
 }
 async function translate(args: string[]) {
   const lang = args[0]; const text = args.slice(1).join(" ");
   if (!lang || !text) return "Uso: !traduzir pt texto ou !traduzir en texto";
-  try { const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=auto|${encodeURIComponent(lang)}`); const data = await response.json() as { responseData?: { translatedText?: string } }; return `Tradução: ${data.responseData?.translatedText ?? "sem resultado"}`; } catch { return "Não foi possível traduzir agora."; }
+  try { const response = await fetchWithTimeout(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=auto|${encodeURIComponent(lang)}`); const data = await response.json() as { responseData?: { translatedText?: string } }; return `Tradução: ${data.responseData?.translatedText ?? "sem resultado"}`; } catch { return "Não foi possível traduzir agora."; }
 }
 async function lookupInfo(term: string) {
   if (!term) return "Use !info com um termo de busca.";
-  try { const response = await fetch(`https://pt.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(term)}`); const data = await response.json() as { extract?: string; content_urls?: { desktop?: { page?: string } } }; return data.extract ? `${data.extract.slice(0, 600)}${data.content_urls?.desktop?.page ? `\\n${data.content_urls.desktop.page}` : ""}` : "Nenhuma informação encontrada."; } catch { return "Não foi possível buscar informações agora."; }
+  try { const response = await fetchWithTimeout(`https://pt.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(term)}`); const data = await response.json() as { extract?: string; content_urls?: { desktop?: { page?: string } } }; return data.extract ? `${data.extract.slice(0, 600)}${data.content_urls?.desktop?.page ? `\\n${data.content_urls.desktop.page}` : ""}` : "Nenhuma informação encontrada."; } catch { return "Não foi possível buscar informações agora."; }
 }
 
 function escapeXml(value: string) { return value.replace(/[&<>\"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[char] ?? char); }

@@ -4,7 +4,7 @@ import P from "pino";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { updateSession } from "../db";
-import { handleIncomingMessage } from "./commands";
+import { commandLabel, handleIncomingMessage } from "./commands";
 
 const PHONE = (process.env.BOT_PHONE ?? "5534991286637").replace(/\D/g, "");
 const SESSION_DIR = path.resolve(process.env.BOT_SESSION_DIR ?? ".bot-session");
@@ -68,13 +68,20 @@ export async function startBot() {
       }
     });
     sock.ev.on("messages.upsert", async ({ messages }) => {
-      for (const message of messages) {
+      await Promise.allSettled(messages.map(async (message) => {
+        const startedAt = performance.now();
+        const jid = message.key.remoteJid;
+        const command = commandLabel(message) ?? "unknown";
         try {
+          if (jid && !message.key.fromMe) void sock.readMessages([message.key]).catch(() => undefined);
           await handleIncomingMessage(sock, message);
         } catch (error) {
           console.error("[GGZN] message handler error", error);
+        } finally {
+          const elapsed = Math.round(performance.now() - startedAt);
+          if (elapsed > 250) console.info(`[GGZN][latency] ${elapsed}ms command=${command} jid=${jid ?? "unknown"}`);
         }
-      }
+      }));
     });
   })().finally(() => { state.connecting = undefined; });
   return state.connecting;

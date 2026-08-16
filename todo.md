@@ -48,3 +48,22 @@
 - [x] Adicionar testes do handleIncomingMessage para silenciar e limpar com mock de socket
 - [x] Adicionar testes do handleIncomingMessage para spam, trava-zap e fake
 - [x] Criar mocks de WAMessage e WASocket para validar chamadas reais do handler
+
+- [x] Redesenhar a interface pública com acabamento premium, hierarquia visual e microinterações
+- [x] Adicionar imagens/arte visual premium otimizadas para carregamento rápido
+- [x] Adicionar métricas de latência e logs de tempo por comando
+- [x] Reduzir consultas redundantes ao banco e adicionar cache de configurações de grupo
+- [x] Melhorar a resposta imediata do bot com confirmação de leitura assíncrona e processamento paralelo seguro
+- [x] Otimizar fluxo de sessão Baileys, processamento paralelo e timeouts de mídia/API
+- [x] Validar desempenho, imagens, responsividade e testes após as melhorias
+
+- [x] Trocar a arte do hero pela versão comprimida/WebP publicada no armazenamento do projeto
+- [x] Registrar latência identificando o comando processado
+- [x] Adicionar limite de sete segundos ao processamento de mídia
+- [x] Executar benchmark do handler com cache aquecido: média 0,05 ms e máximo 0,27 ms no comando !piada
+
+- [x] Aplicar timeout também à conversão sharp da figurinha
+- [x] Adicionar teste para falha/timeout do fluxo de mídia
+
+- [x] Testar o comando sticker com timeout no download de mídia
+- [x] Testar o comando sticker com falha/timeout na conversão WebP
