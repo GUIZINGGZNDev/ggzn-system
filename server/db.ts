@@ -70,7 +70,7 @@ function parseJson<T>(value: string, fallback: T): T {
 export async function getOrCreateGroup(jid: string, name = "Grupo sem nome"): Promise<GroupConfig> {
   const db = await getDb();
   if (!db) return { jid, name, activePrefix: "!", prefixes: ["!", "/", "#", "."], disabledCommands: [] };
-  await db.insert(botGroups).values({ jid, name }).onDuplicateKeyUpdate({ set: { name } });
+  await db.insert(botGroups).values({ jid, name, activePrefix: "!", prefixes: JSON.stringify(["!", "/", "#", "."]), disabledCommands: JSON.stringify([]) }).onDuplicateKeyUpdate({ set: { name } });
   const rows = await db.select().from(botGroups).where(eq(botGroups.jid, jid)).limit(1);
   const row = rows[0];
   return {
