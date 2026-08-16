@@ -268,3 +268,12 @@
 - [x] Validar TypeScript, Vitest, build e previews desktop/mobile após a melhoria abrangente
 - [x] Revisar todo o TODO e salvar checkpoint publicado da melhoria abrangente
 
+
+- [x] Definir catálogo de novos comandos e menus para utilidades, comunidade e sistema
+- [x] Implementar auto-resposta por menção direta ao bot, como `@bot oi`, com cooldown e opt-out por grupo
+- [x] Implementar animações seguras de resposta usando indicador de digitação, sem spam
+- [x] Persistir configurações de menção, animações e novos gatilhos por grupo
+- [x] Atualizar menus principal, IA, textos, info e configuração com os novos comandos
+- [x] Adicionar testes de parsing, permissões, cooldown, persistência e respostas sem duplicação
+- [x] Validar TypeScript, Vitest, build, latência e publicar a nova versão
+

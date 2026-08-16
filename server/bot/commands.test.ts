@@ -14,7 +14,8 @@ function mockSocket() {
     sendMessage: vi.fn().mockResolvedValue(undefined),
     groupSettingUpdate: vi.fn().mockResolvedValue(undefined),
     groupParticipantsUpdate: vi.fn().mockResolvedValue(undefined),
-  } as unknown as WASocket & { sendMessage: ReturnType<typeof vi.fn>; groupSettingUpdate: ReturnType<typeof vi.fn> };
+    sendPresenceUpdate: vi.fn().mockResolvedValue(undefined),
+  } as unknown as WASocket & { sendMessage: ReturnType<typeof vi.fn>; groupSettingUpdate: ReturnType<typeof vi.fn>; sendPresenceUpdate: ReturnType<typeof vi.fn> };
 }
 
 describe("GGZN command permissions", () => {
@@ -128,6 +129,31 @@ describe("GGZN command permissions", () => {
 });
 
 describe("GGZN message handler", () => {
+  it("responds to a direct @bot mention with typing presence and a bounded reply", async () => {
+    const socket = mockSocket();
+    await handleIncomingMessage(socket, ownerMessage("@bot oi"));
+    expect(socket.sendPresenceUpdate).toHaveBeenCalledWith("composing", "test-handler@g.us");
+    expect(socket.sendPresenceUpdate).toHaveBeenCalledWith("paused", "test-handler@g.us");
+    expect(socket.sendMessage).toHaveBeenCalledWith("test-handler@g.us", expect.objectContaining({ text: expect.stringContaining("GGZN SYSTEM online") }));
+  });
+
+  it("answers the new operational version command", async () => {
+    const socket = mockSocket();
+    await handleIncomingMessage(socket, ownerMessage("!versao"));
+    expect(socket.sendMessage).toHaveBeenCalledWith("test-handler@g.us", expect.objectContaining({ text: expect.stringContaining("GGZN SYSTEM v1.0") }));
+  });
+
+  it("allows admins to toggle @bot mention replies without sending duplicate responses", async () => {
+    const offSocket = mockSocket();
+    await handleIncomingMessage(offSocket, ownerMessage("!auto menção off"));
+    expect(offSocket.sendMessage).toHaveBeenCalledWith("test-handler@g.us", expect.objectContaining({ text: expect.stringContaining("desativada") }));
+    const mutedSocket = mockSocket();
+    await handleIncomingMessage(mutedSocket, ownerMessage("@bot oi"));
+    expect(mutedSocket.sendMessage).not.toHaveBeenCalled();
+    const onSocket = mockSocket();
+    await handleIncomingMessage(onSocket, ownerMessage("!auto menção on"));
+    expect(onSocket.sendMessage).toHaveBeenCalledWith("test-handler@g.us", expect.objectContaining({ text: expect.stringContaining("ativada") }));
+  });
   it("silences the group through announcement mode", async () => {
     const socket = mockSocket();
     await handleIncomingMessage(socket, ownerMessage("!silenciar"));

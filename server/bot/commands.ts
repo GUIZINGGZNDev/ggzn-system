@@ -7,6 +7,7 @@ import { getBotState, getPhone } from "./manager";
 const ROLE_LEVEL = { member: 1, moderator: 2, admin: 3, owner: 4 } as const;
 const funHits = new Map<string, number[]>();
 const autoHits = new Map<string, number[]>();
+const mentionHits = new Map<string, number[]>();
 const funCommands = new Set(["fake", "gigante", "spam", "sorteio", "trava-zap"]);
 const roleCache = new Map<string, { role: Role; expiresAt: number }>();
 const ownerBootstrapped = new Set<string>();
@@ -85,6 +86,8 @@ const menus: Record<string, (prefix: string) => string> = {
     commandLine(prefix, "auto add gatilho => resposta", "cria uma auto-resposta"),
     commandLine(prefix, "auto listar", "lista auto-respostas"),
     commandLine(prefix, "auto remover gatilho", "remove uma auto-resposta"),
+    commandLine(prefix, "auto menção on", "ativa respostas para @bot"),
+    commandLine(prefix, "auto menção off", "desativa respostas para @bot"),
     commandLine(prefix, "menu voltar", "volta ao menu principal"),
   ].join("\n"),
   membros: (prefix) => [
@@ -107,8 +110,12 @@ const menus: Record<string, (prefix: string) => string> = {
     commandLine(prefix, "hora", "mostra o horário atual"),
     commandLine(prefix, "data", "mostra a data atual"),
     commandLine(prefix, "id", "mostra os identificadores da conversa"),
+    commandLine(prefix, "versao", "mostra a versão do sistema"),
+    commandLine(prefix, "bot", "mostra o estado operacional"),
     commandLine(prefix, "regras", "mostra as regras básicas"),
     commandLine(prefix, "grupo", "mostra o nome e a configuração do grupo"),
+    commandLine(prefix, "versao", "mostra a versão do GGZN SYSTEM"),
+    commandLine(prefix, "animar texto", "responde com indicador de digitação"),
   ].join("\n"),
   cargos: (prefix) => [
     "*MENU CARGOS — HIERARQUIA*",
@@ -151,6 +158,8 @@ const menus: Record<string, (prefix: string) => string> = {
     commandLine(prefix, "menu config", "mostra a configuração por grupo"),
     commandLine(prefix, "ping", "responde com o tempo do bot"),
     commandLine(prefix, "id", "mostra os identificadores da conversa"),
+    commandLine(prefix, "versao", "mostra a versão do sistema"),
+    commandLine(prefix, "bot", "mostra o estado operacional"),
     commandLine(prefix, "regras", "mostra as regras básicas"),
     "",
     "GGZN SYSTEM — Node.js + Baileys.",
@@ -210,6 +219,8 @@ const menus: Record<string, (prefix: string) => string> = {
     commandLine(prefix, "traduzir pt texto", "traduz texto para português"),
     commandLine(prefix, "traduzir en texto", "traduz texto para inglês"),
     commandLine(prefix, "clima cidade", "consulta dados externos"),
+    commandLine(prefix, "@bot oi", "responde a uma menção direta"),
+    commandLine(prefix, "auto listar", "lista auto-respostas e estado de menções"),
     commandLine(prefix, "piada", "resposta automática rápida"),
     "",
     "Auto-respostas seguras e integrações possuem timeout.",
@@ -226,6 +237,8 @@ const menus: Record<string, (prefix: string) => string> = {
     commandLine(prefix, "desativar comando", "desativa uma função do grupo"),
     commandLine(prefix, "ativar clima", "reativa o comando clima"),
     commandLine(prefix, "desativar spam", "desativa o comando spam"),
+    commandLine(prefix, "auto menção on", "ativa respostas para @bot"),
+    commandLine(prefix, "auto menção off", "desativa respostas para @bot"),
     commandLine(prefix, "menu config", "reabre este submenu"),
     commandLine(prefix, "menu voltar", "volta ao menu principal"),
     commandLine(prefix, "status", "mostra o estado do bot"),
@@ -263,6 +276,38 @@ async function reply(sock: WASocket, jid: string, text: string) {
   console.info(`[GGZN][message][sent] ${elapsed}ms jid=${jid} chars=${text.length}`);
 }
 
+async function replyAnimated(sock: WASocket, jid: string, text: string) {
+  const presence = sock.sendPresenceUpdate ? sock.sendPresenceUpdate("composing", jid).catch(() => undefined) : Promise.resolve();
+  await Promise.race([presence, new Promise((resolve) => setTimeout(resolve, 120))]);
+  await reply(sock, jid, text);
+  if (sock.sendPresenceUpdate) await sock.sendPresenceUpdate("paused", jid).catch(() => undefined);
+}
+
+function mentionText(message: WAMessage) {
+  const text = textOf(message).trim();
+  const info = message.message?.extendedTextMessage?.contextInfo;
+  const botJid = `${getPhone()}@s.whatsapp.net`;
+  const isDirectMention = info?.mentionedJid?.some((jid) => jid.replace(/:\d+/, "") === botJid) || /^@(?:bot|ggzn)(?:\s|$)/i.test(text);
+  if (!isDirectMention) return undefined;
+  return text.replace(/^@(?:bot|ggzn)\s*/i, "").replace(/@\S+/g, "").trim().toLowerCase();
+}
+
+const defaultMentionReplies: Record<string, string> = {
+  oi: "Oi! GGZN SYSTEM online. Use !menu para abrir o painel.",
+  olá: "Olá! Estou online. Use !menu para ver os comandos.",
+  ola: "Olá! Estou online. Use !menu para ver os comandos.",
+  "bom dia": "Bom dia! GGZN SYSTEM pronto para operar.",
+  "boa tarde": "Boa tarde! GGZN SYSTEM segue online.",
+  "boa noite": "Boa noite! GGZN SYSTEM continua de prontidão.",
+  "tudo bem": "Tudo certo por aqui. Status operacional ativo.",
+  ajuda: "Posso ajudar com menus, regras, moderação e utilidades. Use !menu.",
+};
+
+function mentionReply(group: { autoReplies: Array<{ trigger: string; response: string; enabled: boolean }> }, text: string) {
+  const custom = group.autoReplies.find((item) => item.enabled && text.includes(item.trigger.toLowerCase()));
+  return custom?.response ?? defaultMentionReplies[text] ?? (text ? `Recebi: “${text.slice(0, 80)}”. Use !menu para ver as opções.` : "Estou online. Use !menu para abrir o painel.");
+}
+
 async function requireRole(sock: WASocket, jid: string, sender: string, required: Role) {
   const owner = sender.replace(/\D/g, "") === getPhone();
   const cacheKey = `${jid}:${sender}`;
@@ -288,6 +333,17 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
   const group = isGroup(jid) ? await getOrCreateGroup(jid) : { activePrefix: "!", prefixes: ["!", "/", "#", "."], disabledCommands: [] as string[], rules: [], autoReplies: [], jid, name: "Privado" };
   const prefix = group.prefixes.find((candidate) => text.startsWith(candidate));
   if (!prefix) {
+    const mentionedText = mentionText(message);
+    if (mentionedText && !group.disabledCommands.includes("__mention__")) {
+      const mentionKey = `${jid}:${senderOf(message)}`;
+      const now = Date.now();
+      const hits = (mentionHits.get(mentionKey) ?? []).filter((time) => now - time < 60000);
+      if (hits.length < 4) {
+        mentionHits.set(mentionKey, [...hits, now]);
+        await replyAnimated(sock, jid, mentionReply(group, mentionedText));
+      }
+      return;
+    }
     const auto = group.autoReplies.find((item) => item.enabled && text.toLowerCase().includes(item.trigger.toLowerCase()));
     if (auto) {
       const autoKey = `${jid}:${senderOf(message)}`;
@@ -331,9 +387,11 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
   if (command === "id") { await reply(sock, jid, `Chat: ${jid}\nUsuário: ${sender}`); return; }
   if (command === "regras" && !args[0]) { const activeRules = group.rules.filter((rule) => rule.enabled); const rules = activeRules.length ? activeRules.map((rule, index) => `${index + 1}. ${rule.text}`).join("\n") : "Nenhuma regra personalizada."; await reply(sock, jid, `REGRAS GGZN\n${rules}`); return; }
   if (command === "regras") { if (!isGroup(jid) || !(await requireRole(sock, jid, sender, "admin"))) return; const action = args[0]?.toLowerCase(); if (action === "add") { const value = args.slice(1).join(" ").trim(); if (!value) return reply(sock, jid, "Use !regras add texto"); const rules = [...group.rules, { id: String(Date.now()), text: value.slice(0, 240), enabled: true }]; await updateGroupConfig(jid, { rules }); await reply(sock, jid, "Regra adicionada."); return; } if (action === "toggle") { const id = args[1]; const rules = group.rules.map((rule) => rule.id === id ? { ...rule, enabled: !rule.enabled } : rule); await updateGroupConfig(jid, { rules }); await reply(sock, jid, "Estado da regra atualizado."); return; } if (action === "limpar") { await updateGroupConfig(jid, { rules: [] }); await reply(sock, jid, "Regras limpas."); return; } await reply(sock, jid, "Use !regras add texto | !regras toggle ID | !regras limpar"); return; }
-  if (command === "auto") { if (!isGroup(jid) || !(await requireRole(sock, jid, sender, "admin"))) return; const action = args[0]?.toLowerCase(); if (action === "add") { const [trigger, response] = args.slice(1).join(" ").split("=>").map((part) => part?.trim()); if (!trigger || !response) return reply(sock, jid, "Use !auto add gatilho => resposta"); const autoReplies = [...group.autoReplies.filter((item) => item.trigger !== trigger), { trigger: trigger.slice(0, 40), response: response.slice(0, 500), enabled: true }]; await updateGroupConfig(jid, { autoReplies }); await reply(sock, jid, "Auto-resposta adicionada."); return; } if (action === "remover") { const trigger = args.slice(1).join(" ").trim(); await updateGroupConfig(jid, { autoReplies: group.autoReplies.filter((item) => item.trigger !== trigger) }); await reply(sock, jid, "Auto-resposta removida."); return; } if (action === "listar") { await reply(sock, jid, group.autoReplies.length ? group.autoReplies.map((item) => `${item.enabled ? "ON" : "OFF"} | ${item.trigger}`).join("\n") : "Nenhuma auto-resposta cadastrada."); return; } await reply(sock, jid, "Use !auto add gatilho => resposta | !auto listar | !auto remover gatilho"); return; }
+  if (command === "auto") { if (!isGroup(jid) || !(await requireRole(sock, jid, sender, "admin"))) return; const action = args[0]?.toLowerCase(); if (["menção", "mencao", "mention"].includes(action ?? "")) { const value = args[1]?.toLowerCase(); if (!["on", "off"].includes(value ?? "")) return reply(sock, jid, "Use !auto menção on ou !auto menção off"); const disabled = new Set(group.disabledCommands); value === "off" ? disabled.add("__mention__") : disabled.delete("__mention__"); await updateGroupConfig(jid, { disabledCommands: Array.from(disabled) }); await reply(sock, jid, `Auto-resposta por @bot: ${value === "on" ? "ativada" : "desativada"}.`); return; } if (action === "add") { const [trigger, response] = args.slice(1).join(" ").split("=>").map((part) => part?.trim()); if (!trigger || !response) return reply(sock, jid, "Use !auto add gatilho => resposta"); const autoReplies = [...group.autoReplies.filter((item) => item.trigger !== trigger), { trigger: trigger.slice(0, 40).toLowerCase(), response: response.slice(0, 500), enabled: true }]; await updateGroupConfig(jid, { autoReplies }); await reply(sock, jid, "Auto-resposta adicionada."); return; } if (action === "remover") { const trigger = args.slice(1).join(" ").trim().toLowerCase(); await updateGroupConfig(jid, { autoReplies: group.autoReplies.filter((item) => item.trigger !== trigger) }); await reply(sock, jid, "Auto-resposta removida."); return; } if (action === "listar") { const mentionStatus = group.disabledCommands.includes("__mention__") ? "OFF" : "ON"; await reply(sock, jid, `MENÇÕES @BOT: ${mentionStatus}\n${group.autoReplies.length ? group.autoReplies.map((item) => `${item.enabled ? "ON" : "OFF"} | ${item.trigger}`).join("\n") : "Nenhuma auto-resposta cadastrada."}`); return; } await reply(sock, jid, "Use !auto add gatilho => resposta | !auto listar | !auto remover gatilho | !auto menção on/off"); return; }
   if (command === "grupo") { await reply(sock, jid, `Grupo: ${group.name}\nPrefixo: ${group.activePrefix}\nComandos bloqueados: ${group.disabledCommands.length}`); return; }
-  if (command === "status") { const bot = getBotState(); await reply(sock, jid, `Status: ${bot.status.toUpperCase()}\nTransporte: Baileys\nNúmero: ${bot.phone}`); return; }
+  if (command === "status" || command === "bot") { const bot = getBotState(); await reply(sock, jid, `Status: ${bot.status.toUpperCase()}\nTransporte: Baileys\nNúmero: ${bot.phone}`); return; }
+  if (command === "versao") { await reply(sock, jid, "GGZN SYSTEM v1.0\nNode.js + Baileys\nModo: resposta rápida e segura."); return; }
+  if (command === "animar") { const animatedText = args.join(" ").trim().slice(0, 240) || "GGZN SYSTEM online."; await replyAnimated(sock, jid, animatedText); return; }
   if (command === "prefixo") {
     if (!isGroup(jid) || !(await requireRole(sock, jid, sender, "admin"))) return;
     const action = args[0]?.toLowerCase();
