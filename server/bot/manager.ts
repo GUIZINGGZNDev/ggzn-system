@@ -1,4 +1,4 @@
-import makeWASocket, { Browsers, DisconnectReason, useMultiFileAuthState, type WASocket } from "@whiskeysockets/baileys";
+import { makeWASocket, Browsers, DisconnectReason, fetchLatestBaileysVersion, useMultiFileAuthState, type WASocket, type WAMessage } from "@whiskeysockets/baileys";
 import QRCode from "qrcode";
 import P from "pino";
 import fs from "node:fs/promises";
@@ -19,6 +19,9 @@ type BotState = {
   pending?: Promise<string | undefined>;
   lastError?: string;
   connecting?: Promise<void>;
+  pairingReady?: Promise<void>;
+  pairingReadyResolve?: () => void;
+  registered?: boolean;
 };
 
 const PAIRING_CODE_TTL_MS = 60_000;
@@ -42,8 +45,12 @@ export async function startBot() {
     state.status = "connecting";
     await updateSession(PHONE, "connecting");
     const { state: authState, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
+    state.registered = authState.creds.registered;
+    state.pairingReady = new Promise<void>((resolve) => { state.pairingReadyResolve = resolve; });
+    const { version } = await fetchLatestBaileysVersion();
     const sock = makeWASocket({
       auth: authState,
+      version,
       browser: Browsers.ubuntu("GGZN SYSTEM"),
       logger: P({ level: "silent" }),
       printQRInTerminal: false,
@@ -56,10 +63,13 @@ export async function startBot() {
       if (qr) {
         state.qrDataUrl = await QRCode.toDataURL(qr, { margin: 2, width: 360 });
         state.status = "needs_pairing";
+        state.pairingReadyResolve?.();
         await updateSession(PHONE, "needs_pairing");
       }
       if (connection === "open") {
         state.status = "connected";
+        state.registered = true;
+        state.pairingReadyResolve?.();
         state.qrDataUrl = undefined;
         state.pairingCode = undefined;
         state.pairingIssuedAt = undefined;
@@ -72,7 +82,8 @@ export async function startBot() {
         const code = (lastDisconnect?.error as { output?: { statusCode?: number }; message?: string } | undefined)?.output?.statusCode;
         state.lastError = `connection closed: ${code ?? "unknown"}`;
         console.warn(`[GGZN] connection closed code=${code ?? "unknown"}`);
-        const shouldReconnect = code !== DisconnectReason.loggedOut;
+        state.pairingReadyResolve?.();
+        const shouldReconnect = code !== DisconnectReason.loggedOut && code !== 401;
         state.status = shouldReconnect ? "disconnected" : "needs_pairing";
         await updateSession(PHONE, state.status, `connection closed: ${code ?? "unknown"}`);
         if (shouldReconnect) setTimeout(() => void startBot(), 2500);
@@ -107,8 +118,11 @@ export async function requestPairingCode() {
     for (let attempt = 0; attempt < 2; attempt += 1) {
     if (!state.sock || state.status === "disconnected") await startBot();
     if (!state.sock) throw new Error("Sessão do bot ainda não está disponível");
-    if (state.status === "connected") return undefined;
-    await new Promise((resolve) => setTimeout(resolve, 5000));
+    if (state.registered || state.status === "connected") return undefined;
+    await Promise.race([
+      state.pairingReady ?? Promise.resolve(),
+      new Promise<void>((_, reject) => setTimeout(() => reject(new Error("Socket não ficou pronto para código de conexão")), 15000)),
+    ]);
     try {
       state.qrDataUrl = undefined;
       const code = await state.sock.requestPairingCode(PHONE);

@@ -101,3 +101,37 @@
 - [x] Incluir aviso persistente de expiração e não compartilhamento na resposta protegida de /api/bot/pairing
 - [x] Testar a política de reemissão/substituição usada por requestPairingCode após expiração
 - [x] Validar o single-flight usado pelo fluxo do endpoint com teste concorrente do helper
+
+- [x] Registrar a segunda falha de vinculação do código no WhatsApp
+- [x] Auditar código de fechamento e último erro da sessão Baileys: 401 persistente
+- [x] Evitar novas emissões até confirmar a causa da recusa
+- [x] Definir fluxo alternativo: QR privado e migração futura para API oficial
+
+- [x] Trocar o fluxo principal de conexão por código para QR Code privado; emissão pausada durante manutenção
+- [x] Manter QR Code fora do site público e exigir acesso proprietário
+- [x] Expor QR Code somente no endpoint protegido de conexão
+- [x] Limpar sessão inválida antes de gerar o QR atual
+- [ ] Validar que o QR aparece e que o status muda para connected após escaneamento: bloqueado até migração/novo transporte
+
+- [x] Registrar falha persistente de QR e código com fechamento 401
+- [x] Interromper novas emissões e reconexões automáticas de pareamento
+- [x] Preservar site, menus, banco e comandos para migração de transporte
+- [ ] Definir migração para API oficial do WhatsApp Business ou número separado de testes
+
+- [x] Adicionar modo de manutenção para bloquear /api/bot/pairing e /api/bot/qr durante falha persistente
+- [x] Testar resposta de bloqueio quando o transporte estiver indisponível: HTTP 503
+- [x] Criar documentação da camada de transporte WhatsApp para futura API oficial
+
+- [x] Remover qrDataUrl da resposta de /api/bot/pairing
+- [x] Definir QR privado como único fluxo de conexão suportado nesta versão; emissão permanece pausada em manutenção
+- [x] Testar que somente /api/bot/qr pode retornar qrDataUrl
+
+- [x] Desativar definitivamente requestPairingCode e o fluxo numérico nesta versão
+- [x] Testar contrato real do endpoint de código sem qrDataUrl
+- [x] Testar contrato real do endpoint QR como único caminho protegido de qrDataUrl quando liberado
+
+- [x] Validar contrato HTTP do /api/bot/pairing com manutenção desativada e confirmar ausência de qrDataUrl
+- [x] Testar contrato do /api/bot/qr autorizado em ambiente controlado e confirmar retorno de qrDataUrl
+- [x] Registrar resultados dos contratos HTTP nos testes e na documentação do transporte
+
+- [x] Atualizar docs/whatsapp-transport.md com os resultados dos contratos HTTP 410, 503 e QR autorizado
