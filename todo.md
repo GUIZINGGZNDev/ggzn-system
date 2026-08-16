@@ -235,3 +235,9 @@
 - [x] Implementar `!menu voltar` no roteador
 - [x] Tornar `!status` dinâmico usando o estado real do bot
 - [x] Publicar checkpoint da expansão dos submenus e funções
+
+- [x] Modelar submenus internos `!menu adm 1` e `!menu mod 1`
+- [x] Implementar controles de regras personalizadas por grupo
+- [x] Persistir regras e configurações de auto-resposta por grupo
+- [x] Implementar auto-respostas configuráveis com limite antiabuso
+- [x] Atualizar schema/migração, testes, build e publicação

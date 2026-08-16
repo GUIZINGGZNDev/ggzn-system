@@ -173,12 +173,36 @@ describe("GGZN message handler", () => {
     expect(sentText).not.toContain("\\n");
   });
 
+  it("opens the internal admin and moderation submenus", async () => {
+    for (const command of ["!menu adm 1", "!menu mod 1"]) {
+      const socket = mockSocket();
+      await handleIncomingMessage(socket, ownerMessage(command));
+      const text = socket.sendMessage.mock.calls[0]?.[1]?.text as string;
+      expect(text).toContain("MENU");
+      expect(text).toContain("menu voltar");
+    }
+  });
+
   it("returns to the principal menu with menu voltar", async () => {
     const socket = mockSocket();
     await handleIncomingMessage(socket, ownerMessage("!menu voltar"));
     const text = socket.sendMessage.mock.calls[0]?.[1]?.text as string;
     expect(text).toContain("GGZN CORPORATION");
     expect(text).toContain("MENU PRINCIPAL");
+  });
+
+  it("persists custom rules and auto replies for the group owner", async () => {
+    const addRule = mockSocket();
+    await handleIncomingMessage(addRule, ownerMessage("!regras add Respeite o grupo"));
+    expect(addRule.sendMessage.mock.calls[0]?.[1]?.text).toContain("Regra adicionada");
+
+    const addAuto = mockSocket();
+    await handleIncomingMessage(addAuto, ownerMessage("!auto add bom dia => Bom dia, GGZN!"));
+    expect(addAuto.sendMessage.mock.calls[0]?.[1]?.text).toContain("Auto-resposta adicionada");
+
+    const listAuto = mockSocket();
+    await handleIncomingMessage(listAuto, ownerMessage("!auto listar"));
+    expect(listAuto.sendMessage.mock.calls[0]?.[1]?.text).toContain("bom dia");
   });
 
   it("supports operational utility commands", async () => {

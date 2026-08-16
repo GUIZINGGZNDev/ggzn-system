@@ -19,6 +19,8 @@ export const botGroups = mysqlTable("bot_groups", {
   activePrefix: varchar("activePrefix", { length: 8 }).notNull().default("!"),
   prefixes: text("prefixes").notNull().default("! ,/ ,# ,."),
   disabledCommands: text("disabledCommands").notNull().default("[]"),
+  rules: varchar("rules", { length: 16383 }).notNull().default("[]"),
+  autoReplies: varchar("autoReplies", { length: 16383 }).notNull().default("[]"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -48,5 +50,7 @@ export const botSessions = mysqlTable("bot_sessions", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type BotGroup = typeof botGroups.$inferSelect;
+export type BotRule = { id: string; text: string };
+export type AutoReply = { trigger: string; response: string; enabled: boolean };
 export type BotMember = typeof botMembers.$inferSelect;
 export type BotSession = typeof botSessions.$inferSelect;

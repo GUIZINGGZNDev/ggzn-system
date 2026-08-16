@@ -22,6 +22,20 @@
       "when": 1786880975237,
       "tag": "0002_spotty_riptide",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1786894037102,
+      "tag": "0003_many_mindworm",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1786894150897,
+      "tag": "0004_material_sentinel",
+      "breakpoints": true
     }
   ]
 }

@@ -6,6 +6,7 @@ import { getBotState, getPhone } from "./manager";
 
 const ROLE_LEVEL = { member: 1, moderator: 2, admin: 3, owner: 4 } as const;
 const funHits = new Map<string, number[]>();
+const autoHits = new Map<string, number[]>();
 const funCommands = new Set(["fake", "gigante", "spam", "sorteio", "trava-zap"]);
 const roleCache = new Map<string, { role: Role; expiresAt: number }>();
 const ownerBootstrapped = new Set<string>();
@@ -75,6 +76,17 @@ const menus: Record<string, (prefix: string) => string> = {
     "Requisito: Moderador para silenciar/anunciar/limpar.",
     "Requisito: Administrador para banir, cargos, abrir, fechar e configurações.",
   ].join("\n"),
+  adm1: (prefix) => [
+    "*MENU ADM / 1 — FERRAMENTAS AVANÇADAS*",
+    submenuRule,
+    "",
+    commandLine(prefix, "regras add texto", "adiciona uma regra"),
+    commandLine(prefix, "regras limpar", "remove todas as regras"),
+    commandLine(prefix, "auto add gatilho => resposta", "cria uma auto-resposta"),
+    commandLine(prefix, "auto listar", "lista auto-respostas"),
+    commandLine(prefix, "auto remover gatilho", "remove uma auto-resposta"),
+    commandLine(prefix, "menu voltar", "volta ao menu principal"),
+  ].join("\\n"),
   membros: (prefix) => [
     "*MENU MEMBROS — UTILIDADES*",
     submenuRule,
@@ -158,6 +170,17 @@ const menus: Record<string, (prefix: string) => string> = {
     "",
     "Use `menu adm` para ver todas as ações administrativas.",
   ].join("\n"),
+  mod1: (prefix) => [
+    "*MENU MODERAÇÃO / 1 — CONTROLE*",
+    submenuRule,
+    "",
+    commandLine(prefix, "silenciar", "fecha o grupo"),
+    commandLine(prefix, "abrir", "reabre o grupo"),
+    commandLine(prefix, "limpar", "apaga mensagem citada"),
+    commandLine(prefix, "anunciar texto", "envia anúncio"),
+    commandLine(prefix, "regras", "mostra regras do grupo"),
+    commandLine(prefix, "menu voltar", "volta ao menu principal"),
+  ].join("\\n"),
   site: (prefix) => [
     "*GGZN CORPORATION / SITE OFC*",
     submenuRule,
@@ -262,9 +285,18 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
   if (!jid || message.key.fromMe || !message.message) return;
   const text = textOf(message).trim();
   if (!text) return;
-  const group = isGroup(jid) ? await getOrCreateGroup(jid) : { activePrefix: "!", prefixes: ["!", "/", "#", "."], disabledCommands: [], jid, name: "Privado" };
+  const group = isGroup(jid) ? await getOrCreateGroup(jid) : { activePrefix: "!", prefixes: ["!", "/", "#", "."], disabledCommands: [] as string[], rules: [], autoReplies: [], jid, name: "Privado" };
   const prefix = group.prefixes.find((candidate) => text.startsWith(candidate));
-  if (!prefix) return;
+  if (!prefix) {
+    const auto = group.autoReplies.find((item) => item.enabled && text.toLowerCase().includes(item.trigger.toLowerCase()));
+    if (auto) {
+      const autoKey = `${jid}:${senderOf(message)}`;
+      const now = Date.now();
+      const hits = (autoHits.get(autoKey) ?? []).filter((time) => now - time < 60000);
+      if (hits.length < 3) { autoHits.set(autoKey, [...hits, now]); await reply(sock, jid, auto.response); }
+    }
+    return;
+  }
   const [rawCommand, ...args] = text.slice(prefix.length).trim().split(/\s+/);
   const command = rawCommand?.toLowerCase();
   if (!command || group.disabledCommands.includes(command)) return;
@@ -287,7 +319,8 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
       await reply(sock, jid, getMainMenu(group.activePrefix));
       return;
     }
-    const section = getMenuSection(requestedSection);
+    const nestedSection = requestedSection === "adm" && args[1] === "1" ? "adm1" : requestedSection === "mod" && args[1] === "1" ? "mod1" : undefined;
+    const section = nestedSection ?? getMenuSection(requestedSection);
     await reply(sock, jid, section && menus[section] ? menus[section](group.activePrefix) : getMainMenu(group.activePrefix));
     return;
   }
@@ -296,7 +329,9 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
   if (command === "hora") { await reply(sock, jid, `Hora: ${new Intl.DateTimeFormat("pt-BR", { timeStyle: "medium", timeZone: "America/Sao_Paulo" }).format(new Date())}`); return; }
   if (command === "data") { await reply(sock, jid, `Data: ${new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeZone: "America/Sao_Paulo" }).format(new Date())}`); return; }
   if (command === "id") { await reply(sock, jid, `Chat: ${jid}\nUsuário: ${sender}`); return; }
-  if (command === "regras") { await reply(sock, jid, "REGRAS GGZN\n1. Respeite os membros.\n2. Evite spam e conteúdo abusivo.\n3. Use os comandos conforme seu cargo.\n4. Siga as regras do grupo."); return; }
+  if (command === "regras" && !args[0]) { const rules = group.rules.length ? group.rules.map((rule, index) => `${index + 1}. ${rule.text}`).join("\n") : "Nenhuma regra personalizada."; await reply(sock, jid, `REGRAS GGZN\n${rules}`); return; }
+  if (command === "regras") { if (!isGroup(jid) || !(await requireRole(sock, jid, sender, "admin"))) return; const action = args[0]?.toLowerCase(); if (action === "add") { const value = args.slice(1).join(" ").trim(); if (!value) return reply(sock, jid, "Use !regras add texto"); const rules = [...group.rules, { id: String(Date.now()), text: value.slice(0, 240) }]; await updateGroupConfig(jid, { rules }); await reply(sock, jid, "Regra adicionada."); return; } if (action === "limpar") { await updateGroupConfig(jid, { rules: [] }); await reply(sock, jid, "Regras limpas."); return; } await reply(sock, jid, "Use !regras add texto ou !regras limpar"); return; }
+  if (command === "auto") { if (!isGroup(jid) || !(await requireRole(sock, jid, sender, "admin"))) return; const action = args[0]?.toLowerCase(); if (action === "add") { const [trigger, response] = args.slice(1).join(" ").split("=>").map((part) => part?.trim()); if (!trigger || !response) return reply(sock, jid, "Use !auto add gatilho => resposta"); const autoReplies = [...group.autoReplies.filter((item) => item.trigger !== trigger), { trigger: trigger.slice(0, 40), response: response.slice(0, 500), enabled: true }]; await updateGroupConfig(jid, { autoReplies }); await reply(sock, jid, "Auto-resposta adicionada."); return; } if (action === "remover") { const trigger = args.slice(1).join(" ").trim(); await updateGroupConfig(jid, { autoReplies: group.autoReplies.filter((item) => item.trigger !== trigger) }); await reply(sock, jid, "Auto-resposta removida."); return; } if (action === "listar") { await reply(sock, jid, group.autoReplies.length ? group.autoReplies.map((item) => `${item.enabled ? "ON" : "OFF"} | ${item.trigger}`).join("\n") : "Nenhuma auto-resposta cadastrada."); return; } await reply(sock, jid, "Use !auto add gatilho => resposta | !auto listar | !auto remover gatilho"); return; }
   if (command === "grupo") { await reply(sock, jid, `Grupo: ${group.name}\nPrefixo: ${group.activePrefix}\nComandos bloqueados: ${group.disabledCommands.length}`); return; }
   if (command === "status") { const bot = getBotState(); await reply(sock, jid, `Status: ${bot.status.toUpperCase()}\nTransporte: Baileys\nNúmero: ${bot.phone}`); return; }
   if (command === "prefixo") {
