@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { WASocket, WAMessage } from "@whiskeysockets/baileys";
-import { applyPrefixAction, atLeast, calculate, getMainMenu, getMenu, handleIncomingMessage, moderationEffect, requiredRoleForCommand, safeZoeiraResponse, withTimeout, MEDIA_TIMEOUT_MS } from "./commands";
+import { applyPrefixAction, atLeast, calculate, getMainMenu, getMenu, handleIncomingMessage, MENU_NUMBER_MAP, moderationEffect, requiredRoleForCommand, safeZoeiraResponse, withTimeout, MEDIA_TIMEOUT_MS } from "./commands";
 import { getOrCreateGroup } from "../db";
 
 function ownerMessage(text: string, quoted = false) {
@@ -51,13 +51,23 @@ describe("GGZN command permissions", () => {
 
   it("covers the long main menu and every category with dynamic prefixes", () => {
     const main = getMainMenu("$");
-    expect(main).toContain("$menu adm — 14 comandos de administração");
-    expect(main).toContain("$sticker — imagem para figurinha");
+    expect(main).toContain("$menu 1  —  ADM / controle do grupo");
+    expect(main).toContain("$menu 6  —  Config / prefixos");
     expect(main.split("\\n").length).toBeGreaterThan(12);
     expect(getMenu("cargos", "$")).toContain("$promover moderador @membro");
     expect(getMenu("zoeira", "$")).toContain("$trava-zap — retorna aviso e permanece bloqueado");
     expect(getMenu("info", "$")).toContain("$help categoria — abre um submenu específico");
     expect(getMenu("config", "$")).toContain("$prefixo add ? — adiciona um prefixo alternativo");
+  });
+
+  it("supports the Premium numeric menu navigation", () => {
+    const main = getMainMenu("!");
+    expect(main).toContain("!menu 1  —  ADM / controle do grupo");
+    expect(main).toContain("!menu 6  —  Config / prefixos");
+    expect(MENU_NUMBER_MAP["1"]).toBe("adm");
+    expect(MENU_NUMBER_MAP["4"]).toBe("zoeira");
+    expect(getMenu("adm", "!")).toContain("MENU ADM");
+    expect(getMenu("membros", "!")).toContain("MENU MEMBROS");
   });
 
   it("assigns safe permission levels and effects to moderation commands", () => {

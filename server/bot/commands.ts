@@ -22,25 +22,29 @@ export function applyPrefixAction(current: string[], active: string, action: "ad
 type Role = keyof typeof ROLE_LEVEL;
 
 const commandLine = (prefix: string, command: string, description: string) => `${prefix}${command} — ${description}`;
+export const MENU_NUMBER_MAP = { "1": "adm", "2": "membros", "3": "cargos", "4": "zoeira", "5": "info", "6": "config" } as const;
+const getMenuSection = (value?: string) => value ? MENU_NUMBER_MAP[value as keyof typeof MENU_NUMBER_MAP] ?? value : undefined;
 export const getMainMenu = (prefix: string) => [
-  "*GGZN SYSTEM — MENU COMPLETO*",
+  "╭━━━『 GGZN SYSTEM 』━━━╮",
+  "┃  MENU PREMIUM / CENTRAL",
+  "╰━━━━━━━━━━━━━━━━━━━━━━╯",
   "",
   `Prefixo ativo: ${prefix}`,
-  "Escolha uma categoria ou use um comando direto:",
+  "Digite o número ou o nome da categoria:",
   "",
-  commandLine(prefix, "menu adm", "14 comandos de administração"),
-  commandLine(prefix, "menu membros", "12 comandos para membros"),
-  commandLine(prefix, "menu cargos", "hierarquia e promoções"),
-  commandLine(prefix, "menu zoeira", "8 funções de diversão protegidas"),
-  commandLine(prefix, "menu info", "informações e ajuda do sistema"),
-  commandLine(prefix, "menu config", "prefixos e comandos por grupo"),
+  `${prefix}menu 1  —  ADM / controle do grupo`,
+  `${prefix}menu 2  —  Membros / utilidades`,
+  `${prefix}menu 3  —  Cargos / hierarquia`,
+  `${prefix}menu 4  —  Zoeira / diversão segura`,
+  `${prefix}menu 5  —  Info / ajuda do sistema`,
+  `${prefix}menu 6  —  Config / prefixos`,
   "",
-  "Atalhos rápidos:",
-  commandLine(prefix, "piada", "resposta rápida"),
-  commandLine(prefix, "sticker", "imagem para figurinha"),
-  commandLine(prefix, "clima cidade", "consulta meteorológica"),
-  commandLine(prefix, "calcular 2+2", "cálculo básico"),
-  commandLine(prefix, "prefixos", "mostra os prefixos aceitos"),
+  "Exemplos:",
+  `${prefix}menu adm  —  abre a categoria ADM`,
+  `${prefix}menu 1    —  abre a mesma categoria`,
+  `${prefix}menu membros  —  abre utilidades`,
+  "",
+  "Use um número para navegar. O catálogo de comandos permanece o mesmo.",
 ].join("\\n");
 const menus: Record<string, (prefix: string) => string> = {
   adm: (prefix) => [
@@ -207,7 +211,7 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
   }
 
   if (command === "menu" || command === "help") {
-    const section = args[0]?.toLowerCase();
+    const section = getMenuSection(args[0]?.toLowerCase());
     await reply(sock, jid, section && menus[section] ? menus[section](group.activePrefix) : getMainMenu(group.activePrefix));
     return;
   }

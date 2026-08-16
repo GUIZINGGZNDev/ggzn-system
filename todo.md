@@ -193,3 +193,8 @@
 - [x] Adicionar teste do menu principal longo com prefixo dinâmico
 - [x] Cobrir submenus cargos, zoeira, info e config com linhas descritivas
 - [x] Salvar checkpoint publicado da versão do menu longo
+
+- [x] Definir painel Premium com categorias numeradas e atalhos nomeados
+- [x] Implementar `!menu 1` até `!menu 6` mantendo `!menu adm` e equivalentes
+- [x] Atualizar textos e testes da navegação numerada do menu
+- [x] Validar build e publicar o novo fluxo Premium
