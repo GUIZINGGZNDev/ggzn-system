@@ -253,3 +253,18 @@
 - [x] Testar autorização admin e persistência dos routers botAdmin
 - [x] Adicionar teste de UI do painel `/admin`
 - [x] Salvar checkpoint final após essas validações
+
+- [x] Auditar landing page, painel `/admin`, menus, fluxos mobile e riscos técnicos
+- [x] Refinar interface pública e painel administrativo com hierarquia visual consistente
+- [x] Melhorar menus, mensagens do bot e navegação operacional
+- [x] Fortalecer acessibilidade, segurança, desempenho e estados de erro
+- [x] Adicionar testes de regressão e validar visual, build e publicação
+
+- [x] Refinar hierarquia visual e navegação do painel privado GGZN CONTROL
+- [x] Corrigir estados de login, navegação ativa e textos de acessibilidade em português
+- [x] Fortalecer polling do status público com timeout, cancelamento e proteção contra sobreposição
+- [x] Corrigir quebras de linha literais remanescentes nos submenus do WhatsApp
+- [x] Adicionar testes de regressão para polling, shell administrativo e formatação dos submenus
+- [x] Validar TypeScript, Vitest, build e previews desktop/mobile após a melhoria abrangente
+- [x] Revisar todo o TODO e salvar checkpoint publicado da melhoria abrangente
+

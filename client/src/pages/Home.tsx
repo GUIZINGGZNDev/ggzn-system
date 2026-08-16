@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   ArrowDownRight,
@@ -45,17 +45,24 @@ export default function Home() {
   const [status, setStatus] = useState<BotStatus>({ status: "consultando" });
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const refreshingRef = useRef(false);
 
   const refresh = async () => {
+    if (document.visibilityState === "hidden" || refreshingRef.current) return;
+    refreshingRef.current = true;
     setIsRefreshing(true);
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 5000);
     try {
-      const response = await fetch("/api/bot/status");
+      const response = await fetch("/api/bot/status", { signal: controller.signal, headers: { Accept: "application/json" } });
       if (!response.ok) throw new Error("status unavailable");
       setStatus(await response.json());
     } catch {
       setStatus({ status: "offline" });
     } finally {
+      window.clearTimeout(timeout);
       setLastChecked(new Date());
+      refreshingRef.current = false;
       setIsRefreshing(false);
     }
   };
@@ -70,7 +77,7 @@ export default function Home() {
   const maskedPhone = useMemo(() => maskPhone(status.phone), [status.phone]);
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#f6f6f2] text-black selection:bg-black selection:text-white">
+    <main id="top" aria-busy={isRefreshing} className="min-h-screen overflow-hidden bg-[#f6f6f2] text-black selection:bg-black selection:text-white">
       <header className="sticky top-0 z-30 border-b-2 border-black bg-[#f6f6f2]/95 px-5 py-4 backdrop-blur-md md:px-10">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-5">
           <a href="#top" className="flex shrink-0 items-center gap-3" aria-label="GGZN SYSTEM, voltar ao início">
@@ -86,7 +93,7 @@ export default function Home() {
         </div>
       </header>
 
-      <section id="top" className="mx-auto grid max-w-[1400px] gap-12 px-5 pb-24 pt-16 md:grid-cols-[1.08fr_.92fr] md:px-10 md:pb-32 md:pt-24">
+      <section className="mx-auto grid max-w-[1400px] gap-12 px-5 pb-24 pt-16 md:grid-cols-[1.08fr_.92fr] md:px-10 md:pb-32 md:pt-24">
         <div className="relative">
           <div className="mb-8 flex items-center gap-3 text-xs font-black uppercase tracking-[0.18em]"><span className={`h-3 w-3 ${health.tone} animate-pulse shadow-[0_0_0_5px_rgba(217,255,87,.2)]`} /> {health.label} / NODE.JS / BAILEYS</div>
           <p className="mb-4 text-xs font-black uppercase tracking-[.24em] text-neutral-500">/ automação de grupo, sem ruído</p>

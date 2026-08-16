@@ -86,7 +86,7 @@ const menus: Record<string, (prefix: string) => string> = {
     commandLine(prefix, "auto listar", "lista auto-respostas"),
     commandLine(prefix, "auto remover gatilho", "remove uma auto-resposta"),
     commandLine(prefix, "menu voltar", "volta ao menu principal"),
-  ].join("\\n"),
+  ].join("\n"),
   membros: (prefix) => [
     "*MENU MEMBROS — UTILIDADES*",
     submenuRule,
@@ -180,7 +180,7 @@ const menus: Record<string, (prefix: string) => string> = {
     commandLine(prefix, "anunciar texto", "envia anúncio"),
     commandLine(prefix, "regras", "mostra regras do grupo"),
     commandLine(prefix, "menu voltar", "volta ao menu principal"),
-  ].join("\\n"),
+  ].join("\n"),
   site: (prefix) => [
     "*GGZN CORPORATION / SITE OFC*",
     submenuRule,

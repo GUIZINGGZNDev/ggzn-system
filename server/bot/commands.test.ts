@@ -84,6 +84,8 @@ describe("GGZN command permissions", () => {
     expect(getMenu("ia", "$")).toContain("$traduzir pt texto");
     expect(getMainMenu("$")).not.toContain("\\n");
     expect(getMenu("adm", "$")).not.toContain("\\n");
+    expect(getMenu("adm1", "$")).not.toContain("\\n");
+    expect(getMenu("mod1", "$")).not.toContain("\\n");
   });
 
   it("supports the seven GGZN CORPORATION numeric menu options", () => {

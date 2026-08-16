@@ -36,7 +36,14 @@ export default function AdminPanel() {
   }, [group.data]);
 
   const selectedName = useMemo(() => groups.data?.find((item) => item.jid === selectedJid)?.name ?? "Nenhum grupo selecionado", [groups.data, selectedJid]);
-  const save = () => selectedJid && update.mutate({ jid: selectedJid, rules, autoReplies });
+  const hasChanges = useMemo(() => {
+    if (!group.data) return false;
+    return JSON.stringify(group.data.rules) !== JSON.stringify(rules) || JSON.stringify(group.data.autoReplies) !== JSON.stringify(autoReplies);
+  }, [group.data, rules, autoReplies]);
+  const save = () => {
+    if (!selectedJid || !hasChanges || update.isPending) return;
+    update.mutate({ jid: selectedJid, rules, autoReplies }, { onSuccess: () => void group.refetch() });
+  };
 
   return (
     <DashboardLayout>
@@ -59,12 +66,12 @@ export default function AdminPanel() {
               <CardContent className="space-y-2 p-3">
                 {groups.isLoading ? <p className="p-2 text-sm font-bold">Carregando...</p> : null}
                 {!groups.isLoading && !groups.data?.length ? <p className="p-2 text-sm font-bold text-black/60">Nenhum grupo registrado ainda.</p> : null}
-                {groups.data?.map((item) => <button key={item.jid} onClick={() => setSelectedJid(item.jid)} className={`flex w-full items-center justify-between border-2 p-3 text-left transition ${selectedJid === item.jid ? "border-black bg-lime-300" : "border-transparent bg-black/5 hover:border-black"}`}><span className="min-w-0"><span className="block truncate font-black">{item.name}</span><span className="block truncate text-xs font-mono opacity-60">{item.jid}</span></span><ChevronRight className="h-4 w-4 shrink-0" /></button>)}
+                {groups.data?.map((item) => <button key={item.jid} onClick={() => setSelectedJid(item.jid)} aria-pressed={selectedJid === item.jid} className={`flex min-h-14 w-full items-center justify-between border-2 p-3 text-left transition ${selectedJid === item.jid ? "border-black bg-lime-300" : "border-transparent bg-black/5 hover:border-black"}`}><span className="min-w-0"><span className="block truncate font-black">{item.name}</span><span className="block truncate text-xs font-mono opacity-60">{item.jid}</span></span><ChevronRight className="h-4 w-4 shrink-0" /></button>)}
               </CardContent>
             </Card>
 
             <div className="space-y-5">
-              <Card className="rounded-none border-2 border-black bg-black text-white shadow-[6px_6px_0_#ffb15c]"><CardContent className="flex flex-col gap-3 p-5 md:flex-row md:items-center md:justify-between"><div><p className="text-xs font-black uppercase tracking-[0.2em] text-lime-300">Grupo ativo</p><h2 className="mt-1 text-2xl font-black uppercase">{selectedName}</h2><p className="font-mono text-xs text-white/60">{selectedJid || "Selecione um grupo"}</p></div><Button onClick={save} disabled={!selectedJid || update.isPending} className="bg-lime-300 font-black text-black hover:bg-lime-200"><Save className="mr-2 h-4 w-4" /> {update.isPending ? "Salvando" : "Salvar tudo"}</Button></CardContent></Card>
+              <Card className="rounded-none border-2 border-black bg-black text-white shadow-[6px_6px_0_#ffb15c]"><CardContent className="flex flex-col gap-3 p-5 md:flex-row md:items-center md:justify-between"><div><p className="text-xs font-black uppercase tracking-[0.2em] text-lime-300">Grupo ativo</p><h2 className="mt-1 text-2xl font-black uppercase">{selectedName}</h2><p className="font-mono text-xs text-white/60">{selectedJid || "Selecione um grupo"}</p></div><Button onClick={save} disabled={!selectedJid || !hasChanges || update.isPending} className="min-h-11 bg-lime-300 font-black text-black hover:bg-lime-200 disabled:opacity-50"><Save className="mr-2 h-4 w-4" /> {update.isPending ? "Salvando" : hasChanges ? "Salvar tudo" : "Tudo salvo"}</Button></CardContent></Card>
 
               <div className="grid gap-5 xl:grid-cols-2">
                 <Card className="rounded-none border-2 border-black bg-white"><CardHeader className="border-b-2 border-black"><CardTitle className="text-lg font-black uppercase">Regras do grupo</CardTitle></CardHeader><CardContent className="space-y-4 p-5">
@@ -78,7 +85,10 @@ export default function AdminPanel() {
                   <div className="space-y-2">{autoReplies.map((item) => <div key={item.trigger} className="border-2 border-black p-3"><div className="flex items-center justify-between gap-2"><Input value={item.trigger} onChange={(event) => setAutoReplies(autoReplies.map((reply) => reply.trigger === item.trigger ? { ...reply, trigger: event.target.value } : reply))} className="h-8 max-w-[180px] rounded-none border-2 border-black font-black" /><div className="flex items-center gap-2"><Badge className={item.enabled ? "bg-lime-300 text-black" : "bg-black/10 text-black"}>{item.enabled ? "ATIVA" : "PAUSADA"}</Badge><Button variant="ghost" size="icon" onClick={() => setAutoReplies(removeAutoReply(autoReplies, item.trigger))} aria-label="Remover auto-resposta"><Trash2 className="h-4 w-4 text-red-600" /></Button></div></div><div className="mt-2 flex items-center gap-2"><Input value={item.response} onChange={(event) => setAutoReplies(autoReplies.map((reply) => reply.trigger === item.trigger ? { ...reply, response: event.target.value } : reply))} className="h-8 rounded-none border-0 bg-black/5 text-sm focus-visible:ring-0" /><Button variant="outline" onClick={() => setAutoReplies(toggleAutoReply(autoReplies, item.trigger))} className="h-8 rounded-none border-2 border-black px-2 text-xs font-black">{item.enabled ? "Pausar" : "Ativar"}</Button></div></div>)}</div>
                 </CardContent></Card>
               </div>
-              {update.isSuccess ? <p className="flex items-center gap-2 font-bold text-lime-700"><Check className="h-4 w-4" /> Configurações salvas.</p> : null}
+              <div aria-live="polite" className="space-y-2">
+                {update.isError ? <p role="alert" className="border-2 border-red-600 bg-red-50 p-3 font-bold text-red-800">Não foi possível salvar agora. Verifique sua sessão e tente novamente.</p> : null}
+                {update.isSuccess && !hasChanges ? <p className="flex items-center gap-2 font-bold text-lime-700"><Check className="h-4 w-4" /> Configurações salvas.</p> : null}
+              </div>
             </div>
           </div>
         </div>
