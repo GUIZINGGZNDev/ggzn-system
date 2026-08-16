@@ -21,17 +21,89 @@ export function applyPrefixAction(current: string[], active: string, action: "ad
 }
 type Role = keyof typeof ROLE_LEVEL;
 
-const mainMenu = (prefix: string) => `*GGZN SYSTEM*\n\nPrefixo ativo: ${prefix}\n\n${prefix}menu adm\n${prefix}menu membros\n${prefix}menu cargos\n${prefix}menu zoeira\n${prefix}menu info\n${prefix}menu config`;
-const menus: Record<string, string> = {
-  adm: `*MENU ADM*\nbanir • remover • silenciar • promover • rebaixar\nfechar • abrir • anunciar • limpar`,
-  membros: `*MENU MEMBROS*\nsticker • stext • traduzir • clima\npiada • citacao • calcular • info`,
-  cargos: `*MENU CARGOS*\nDono > Administrador > Moderador > Membro\nUse os comandos de promoção apenas em grupos.`,
-  zoeira: `*MENU ZOEIRA*\nfake • gigante • spam • sorteio\ntrava-zap é bloqueado pelo sistema para evitar abuso.`,
-  info: `*GGZN SYSTEM*\nBot modular em Node.js + Baileys.\nUse o site público para consultar a lista completa.`,
-  config: `*MENU CONFIGURAÇÕES*\nprefixos • prefixo <caractere>\nativar <comando> • desativar <comando>`,
+const commandLine = (prefix: string, command: string, description: string) => `${prefix}${command} — ${description}`;
+const mainMenu = (prefix: string) => [
+  "*GGZN SYSTEM*",
+  "",
+  `Prefixo ativo: ${prefix}`,
+  "",
+  commandLine(prefix, "menu adm", "funções de administração"),
+  commandLine(prefix, "menu membros", "comandos para todos"),
+  commandLine(prefix, "menu cargos", "hierarquia e permissões"),
+  commandLine(prefix, "menu zoeira", "diversão com proteção"),
+  commandLine(prefix, "menu info", "informações do sistema"),
+  commandLine(prefix, "menu config", "prefixos e comandos ativos"),
+].join("\\n");
+const menus: Record<string, (prefix: string) => string> = {
+  adm: (prefix) => [
+    "*MENU ADM*",
+    "",
+    commandLine(prefix, "banir @membro", "remove uma pessoa do grupo"),
+    commandLine(prefix, "remover @membro", "remove uma pessoa do grupo"),
+    commandLine(prefix, "silenciar", "fecha o grupo para membros"),
+    commandLine(prefix, "promover @membro", "promove a administrador"),
+    commandLine(prefix, "rebaixar @membro", "remove o cargo de administrador"),
+    commandLine(prefix, "fechar", "somente admins podem enviar"),
+    commandLine(prefix, "abrir", "libera mensagens no grupo"),
+    commandLine(prefix, "anunciar texto", "envia um anúncio do sistema"),
+    commandLine(prefix, "limpar", "apaga a mensagem citada"),
+    "",
+    "Atenção: comandos ADM exigem cargo compatível.",
+  ].join("\\n"),
+  membros: (prefix) => [
+    "*MENU MEMBROS*",
+    "",
+    commandLine(prefix, "sticker", "converte imagem em figurinha"),
+    commandLine(prefix, "stext frase", "cria figurinha de texto"),
+    commandLine(prefix, "traduzir pt texto", "traduz uma mensagem"),
+    commandLine(prefix, "clima cidade", "consulta o clima"),
+    commandLine(prefix, "piada", "envia uma piada rápida"),
+    commandLine(prefix, "citacao", "envia uma citação"),
+    commandLine(prefix, "calcular 2+2", "calcula uma expressão"),
+    commandLine(prefix, "info termo", "busca um resumo informativo"),
+  ].join("\\n"),
+  cargos: (prefix) => [
+    "*MENU CARGOS*",
+    "",
+    commandLine(prefix, "promover @membro", "atribui cargo administrativo"),
+    commandLine(prefix, "rebaixar @membro", "retorna ao cargo de membro"),
+    "",
+    "Dono > Administrador > Moderador > Membro",
+    "Promoções funcionam apenas dentro de grupos.",
+  ].join("\\n"),
+  zoeira: (prefix) => [
+    "*MENU ZOEIRA*",
+    "",
+    commandLine(prefix, "fake texto", "encena uma mensagem sem autoria real"),
+    commandLine(prefix, "gigante texto", "transforma o texto em maiúsculas"),
+    commandLine(prefix, "sorteio nomes", "sorteia um participante"),
+    commandLine(prefix, "spam", "resposta controlada antiabuso"),
+    commandLine(prefix, "trava-zap", "bloqueado para proteger o grupo"),
+    "",
+    "O sistema limita spam e não executa ações destrutivas.",
+  ].join("\\n"),
+  info: (prefix) => [
+    "*MENU INFO*",
+    "",
+    commandLine(prefix, "menu", "mostra o menu principal"),
+    commandLine(prefix, "prefixos", "lista os prefixos aceitos"),
+    commandLine(prefix, "info termo", "busca informações sobre um termo"),
+    "",
+    "GGZN SYSTEM — Node.js + Baileys.",
+  ].join("\\n"),
+  config: (prefix) => [
+    "*MENU CONFIGURAÇÕES*",
+    "",
+    commandLine(prefix, "prefixos", "lista os prefixos do grupo"),
+    commandLine(prefix, "prefixo set ?", "define o prefixo ativo"),
+    commandLine(prefix, "prefixo add ?", "adiciona um prefixo"),
+    commandLine(prefix, "prefixo remove ?", "remove um prefixo"),
+    commandLine(prefix, "ativar comando", "reativa um comando"),
+    commandLine(prefix, "desativar comando", "desativa um comando"),
+  ].join("\\n"),
 };
 
-export function getMenu(section?: string) { return section && menus[section] ? menus[section] : undefined; }
+export function getMenu(section?: string, prefix = "!") { return section && menus[section] ? menus[section](prefix) : undefined; }
 export function requiredRoleForCommand(command: string) { return ["silenciar", "limpar", "anunciar"].includes(command) ? "moderator" : ["banir", "remover", "promover", "rebaixar", "fechar", "abrir", "prefixo"].includes(command) ? "admin" : "member"; }
 export function moderationEffect(command: string) { return command === "silenciar" ? "announcement" : command === "limpar" ? "delete-quoted" : "none"; }
 export function safeZoeiraResponse(command: string) { if (command === "spam") return "Spam controlado bloqueado"; if (command === "trava-zap") return "Trava-zap bloqueado"; if (command === "fake") return "sem atribuição real"; return undefined; }
@@ -102,7 +174,7 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
 
   if (command === "menu" || command === "help") {
     const section = args[0]?.toLowerCase();
-    await reply(sock, jid, section && menus[section] ? menus[section] : mainMenu(group.activePrefix));
+    await reply(sock, jid, section && menus[section] ? menus[section](group.activePrefix) : mainMenu(group.activePrefix));
     return;
   }
   if (command === "prefixos") { await reply(sock, jid, `Prefixos aceitos: ${group.prefixes.join(" ")}\nAtivo: ${group.activePrefix}`); return; }

@@ -179,3 +179,8 @@
 
 - [x] Comparar explicitamente nos testes `!piada` local versus `!clima` externo pelos logs emitidos
 - [x] Testar telemetria completa de sticker: download, conversão e envio
+
+- [x] Reorganizar menu principal e submenus com um comando por linha
+- [x] Adicionar explicação curta e prefixo visível em cada comando
+- [x] Preservar avisos de segurança e níveis de acesso nos menus
+- [x] Atualizar testes dos menus e validar build/publicação

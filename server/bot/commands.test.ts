@@ -37,9 +37,14 @@ describe("GGZN command permissions", () => {
     expect(applyPrefixAction(["!", "/"], "!", "remove", "!")).toEqual({ prefixes: ["/"], activePrefix: "/" });
   });
 
-  it("exposes the separated menus", () => {
-    expect(getMenu("adm")).toContain("MENU ADM");
-    expect(getMenu("membros")).toContain("MENU MEMBROS");
+  it("exposes separated menus with one described command per line", () => {
+    const admMenu = getMenu("adm", "#");
+    const memberMenu = getMenu("membros", "?");
+    expect(admMenu).toContain("MENU ADM");
+    expect(admMenu).toContain("#banir @membro — remove uma pessoa do grupo");
+    expect(admMenu).toContain("Atenção: comandos ADM exigem cargo compatível.");
+    expect(memberMenu).toContain("?sticker — converte imagem em figurinha");
+    expect(memberMenu).toContain("?clima cidade — consulta o clima");
     expect(getMenu("inexistente")).toBeUndefined();
   });
 
