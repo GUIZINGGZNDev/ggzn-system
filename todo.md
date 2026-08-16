@@ -300,3 +300,11 @@
 - [x] Adicionar testes de permissões, limites, persistência, parsing e segurança
 - [x] Validar TypeScript, Vitest, build e publicar o pacote completo
 
+
+- [x] Definir animação curta e específica para menu principal e cada categoria
+- [x] Criar helper reutilizável de presença/digitação com limite e fallback seguro
+- [x] Aplicar animações aos menus ADM, Membros, Cargos, Zoeira, Info, Moderação, Site, Textos, IA e Config
+- [x] Garantir que animações não enviem spam nem bloqueiem respostas rápidas
+- [x] Adicionar testes de presença, duração, fallback e mensagens finais dos menus
+- [x] Validar TypeScript, Vitest, build e publicar a nova versão
+

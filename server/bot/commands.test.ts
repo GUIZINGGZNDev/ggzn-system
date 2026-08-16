@@ -234,6 +234,16 @@ describe("GGZN message handler", () => {
     expect(sentText).not.toContain("\\n");
   });
 
+  it("animates the main menu, submenus and return navigation", async () => {
+    const socket = mockSocket();
+    await handleIncomingMessage(socket, ownerMessage("!menu"));
+    await handleIncomingMessage(socket, ownerMessage("!menu ia"));
+    await handleIncomingMessage(socket, ownerMessage("!menu voltar"));
+    expect(socket.sendPresenceUpdate).toHaveBeenCalledWith("composing", "test-handler@g.us");
+    expect(socket.sendPresenceUpdate).toHaveBeenCalledWith("paused", "test-handler@g.us");
+    expect(socket.sendMessage).toHaveBeenCalledWith("test-handler@g.us", expect.objectContaining({ text: expect.stringContaining("GGZN CORPORATION") }));
+  });
+
   it("opens the internal admin and moderation submenus", async () => {
     for (const command of ["!menu adm 1", "!menu mod 1"]) {
       const socket = mockSocket();
