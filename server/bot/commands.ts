@@ -52,7 +52,12 @@ function senderOf(message: WAMessage) { return message.key.participant ?? messag
 function isGroup(jid: string) { return jid.endsWith("@g.us"); }
 export function atLeast(role: Role, required: Role) { return ROLE_LEVEL[role] >= ROLE_LEVEL[required]; }
 function mentioned(message: WAMessage) { return message.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0]; }
-async function reply(sock: WASocket, jid: string, text: string) { await sock.sendMessage(jid, { text }); }
+async function reply(sock: WASocket, jid: string, text: string) {
+  const startedAt = performance.now();
+  await sock.sendMessage(jid, { text });
+  const elapsed = Math.round(performance.now() - startedAt);
+  console.info(`[GGZN][message][sent] ${elapsed}ms jid=${jid} chars=${text.length}`);
+}
 
 async function requireRole(sock: WASocket, jid: string, sender: string, required: Role) {
   const owner = sender.replace(/\D/g, "") === getPhone();
@@ -145,9 +150,15 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
   }
   if (command === "anunciar") { if (await requireRole(sock, jid, sender, "moderator")) await reply(sock, jid, `*ANÚNCIO*\n${args.join(" ") || "Sem texto informado."}`); return; }
   if (command === "sticker" && message.message?.imageMessage) {
+    const mediaStartedAt = performance.now();
     const media = await withTimeout(downloadMediaMessage(message, "buffer", {}), MEDIA_TIMEOUT_MS);
+    console.info(`[GGZN][external][sticker-download] ${Math.round(performance.now() - mediaStartedAt)}ms`);
+    const conversionStartedAt = performance.now();
     const sticker = await withTimeout(sharp(media as Buffer).resize(512, 512, { fit: "contain", background: "#ffffff" }).webp({ quality: 82 }).toBuffer(), MEDIA_TIMEOUT_MS);
+    console.info(`[GGZN][external][sticker-conversion] ${Math.round(performance.now() - conversionStartedAt)}ms`);
+    const sendStartedAt = performance.now();
     await sock.sendMessage(jid, { sticker });
+    console.info(`[GGZN][message][sent] ${Math.round(performance.now() - sendStartedAt)}ms jid=${jid} type=sticker`);
     return;
   }
   if (command === "stext") {
@@ -188,23 +199,25 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
 }
 
 export async function withTimeout<T>(promise: Promise<T>, timeoutMs: number) { return await Promise.race([promise, new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), timeoutMs))]); }
-async function fetchWithTimeout(url: string, timeoutMs = 3500) {
+async function fetchWithTimeout(url: string, timeoutMs = 3500, label = "api") {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try { return await fetch(url, { signal: controller.signal }); } finally { clearTimeout(timer); }
+  const startedAt = performance.now();
+  try { return await fetch(url, { signal: controller.signal }); }
+  finally { clearTimeout(timer); console.info(`[GGZN][external][${label}] ${Math.round(performance.now() - startedAt)}ms`); }
 }
 async function weather(city: string) {
   if (!city) return "Use !clima com o nome de uma cidade.";
-  try { const response = await fetchWithTimeout(`https://wttr.in/${encodeURIComponent(city)}?format=3`); return `Clima: ${await response.text()}`; } catch { return "Não foi possível consultar o clima agora."; }
+  try { const response = await fetchWithTimeout(`https://wttr.in/${encodeURIComponent(city)}?format=3`, 3500, "clima"); return `Clima: ${await response.text()}`; } catch { return "Não foi possível consultar o clima agora."; }
 }
 async function translate(args: string[]) {
   const lang = args[0]; const text = args.slice(1).join(" ");
   if (!lang || !text) return "Uso: !traduzir pt texto ou !traduzir en texto";
-  try { const response = await fetchWithTimeout(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=auto|${encodeURIComponent(lang)}`); const data = await response.json() as { responseData?: { translatedText?: string } }; return `Tradução: ${data.responseData?.translatedText ?? "sem resultado"}`; } catch { return "Não foi possível traduzir agora."; }
+  try { const response = await fetchWithTimeout(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=auto|${encodeURIComponent(lang)}`, 3500, "traduzir"); const data = await response.json() as { responseData?: { translatedText?: string } }; return `Tradução: ${data.responseData?.translatedText ?? "sem resultado"}`; } catch { return "Não foi possível traduzir agora."; }
 }
 async function lookupInfo(term: string) {
   if (!term) return "Use !info com um termo de busca.";
-  try { const response = await fetchWithTimeout(`https://pt.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(term)}`); const data = await response.json() as { extract?: string; content_urls?: { desktop?: { page?: string } } }; return data.extract ? `${data.extract.slice(0, 600)}${data.content_urls?.desktop?.page ? `\\n${data.content_urls.desktop.page}` : ""}` : "Nenhuma informação encontrada."; } catch { return "Não foi possível buscar informações agora."; }
+  try { const response = await fetchWithTimeout(`https://pt.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(term)}`, 3500, "info"); const data = await response.json() as { extract?: string; content_urls?: { desktop?: { page?: string } } }; return data.extract ? `${data.extract.slice(0, 600)}${data.content_urls?.desktop?.page ? `\\n${data.content_urls.desktop.page}` : ""}` : "Nenhuma informação encontrada."; } catch { return "Não foi possível buscar informações agora."; }
 }
 
 function escapeXml(value: string) { return value.replace(/[&<>\"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[char] ?? char); }

@@ -162,3 +162,20 @@
 - [x] Adicionar testes automatizados para estados connected, offline, connecting e needs_pairing da interface de status
 - [x] Adicionar teste para mascaramento seguro do número exibido na interface
 - [x] Registrar separadamente a validação de build e preview desktop/mobile
+
+- [x] Medir a latência atual do bot e verificar o status real da sessão
+- [x] Auditar logs de reconexão, recebimento, processamento e envio de mensagens
+- [x] Identificar chamadas externas ou handlers que bloqueiam respostas rápidas
+- [x] Aplicar otimizações de baixa latência sem remover controles de segurança
+- [x] Adicionar testes/benchmark de latência e validar regressões
+
+- [x] Registrar log estruturado de recebimento, início/fim de processamento e envio de resposta por comando
+- [x] Medir separadamente latência de comandos locais e integrações externas; testes locais registraram envio em 0–1 ms e integrações mantêm timeout explícito
+- [x] Revisar os novos logs durante uma validação do diagnóstico; status real ficou `connected`, sem mensagens WhatsApp recebidas na janela de observação
+
+- [x] Adicionar telemetria específica para integrações externas e processamento de sticker
+- [x] Criar teste verificável comparando comando local com pipeline externo/mídia
+- [x] Revisar a telemetria externa após execução dos testes e validação final; `!clima` registrou a etapa externa e o status final permaneceu `connected`
+
+- [x] Comparar explicitamente nos testes `!piada` local versus `!clima` externo pelos logs emitidos
+- [x] Testar telemetria completa de sticker: download, conversão e envio

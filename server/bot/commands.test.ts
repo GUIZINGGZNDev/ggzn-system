@@ -85,6 +85,32 @@ describe("GGZN message handler", () => {
     expect(socket.sendMessage).toHaveBeenCalledWith("test-handler@g.us", expect.objectContaining({ delete: expect.objectContaining({ id: "quoted-1" }) }));
   });
 
+  it("processes a burst of simple commands without serializing replies", async () => {
+    const socket = mockSocket();
+    const startedAt = performance.now();
+    await Promise.all(Array.from({ length: 20 }, (_, index) => handleIncomingMessage(socket, ownerMessage(`!piada ${index}`))));
+    expect(socket.sendMessage).toHaveBeenCalledTimes(20);
+    expect(performance.now() - startedAt).toBeLessThan(500);
+  });
+
+  it("compares local and external command telemetry explicitly", async () => {
+    const socket = mockSocket();
+    const fetchMock = vi.fn().mockResolvedValue({ text: async () => "São Paulo: 20°C" });
+    const infoSpy = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      await handleIncomingMessage(socket, ownerMessage("!piada"));
+      await handleIncomingMessage(socket, ownerMessage("!clima São Paulo"));
+      expect(fetchMock).toHaveBeenCalledOnce();
+      expect(infoSpy).toHaveBeenCalledWith(expect.stringContaining("[GGZN][message][sent]"));
+      expect(infoSpy).toHaveBeenCalledWith(expect.stringContaining("[GGZN][external][clima]"));
+      expect(socket.sendMessage).toHaveBeenCalledWith("test-handler@g.us", expect.objectContaining({ text: expect.stringContaining("São Paulo") }));
+    } finally {
+      infoSpy.mockRestore();
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("sends explicit safe responses for spam, trava-zap and fake", async () => {
     for (const command of ["spam", "trava-zap", "fake"]) {
       const socket = mockSocket();

@@ -5,6 +5,7 @@ import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 const groupCache = new Map<string, { value: GroupConfig; expiresAt: number }>();
+const pendingGroupLoads = new Map<string, Promise<GroupConfig>>();
 const GROUP_CACHE_TTL_MS = 15_000;
 
 export async function getDb() {
@@ -72,28 +73,39 @@ function parseJson<T>(value: string, fallback: T): T {
 export async function getOrCreateGroup(jid: string, name = "Grupo sem nome"): Promise<GroupConfig> {
   const cached = groupCache.get(jid);
   if (cached && cached.expiresAt > Date.now()) return cached.value;
-  const db = await getDb();
-  if (!db) {
-    const fallback = { jid, name, activePrefix: "!", prefixes: ["!", "/", "#", "."], disabledCommands: [] };
-    groupCache.set(jid, { value: fallback, expiresAt: Date.now() + GROUP_CACHE_TTL_MS });
-    return fallback;
+  const pending = pendingGroupLoads.get(jid);
+  if (pending) return pending;
+  const load = (async () => {
+    const db = await getDb();
+    if (!db) {
+      const fallback = { jid, name, activePrefix: "!", prefixes: ["!", "/", "#", "."], disabledCommands: [] };
+      groupCache.set(jid, { value: fallback, expiresAt: Date.now() + GROUP_CACHE_TTL_MS });
+      return fallback;
+    }
+    await db.insert(botGroups).values({ jid, name, activePrefix: "!", prefixes: JSON.stringify(["!", "/", "#", "."]), disabledCommands: JSON.stringify([]) }).onDuplicateKeyUpdate({ set: { name } });
+    const rows = await db.select().from(botGroups).where(eq(botGroups.jid, jid)).limit(1);
+    const row = rows[0];
+    const value = {
+      jid,
+      name: row?.name ?? name,
+      activePrefix: row?.activePrefix ?? "!",
+      prefixes: row ? parseJson<string[]>(row.prefixes, ["!", "/", "#", "."]) : ["!", "/", "#", "."],
+      disabledCommands: row ? parseJson<string[]>(row.disabledCommands, []) : [],
+    };
+    groupCache.set(jid, { value, expiresAt: Date.now() + GROUP_CACHE_TTL_MS });
+    return value;
+  })();
+  pendingGroupLoads.set(jid, load);
+  try {
+    return await load;
+  } finally {
+    pendingGroupLoads.delete(jid);
   }
-  await db.insert(botGroups).values({ jid, name, activePrefix: "!", prefixes: JSON.stringify(["!", "/", "#", "."]), disabledCommands: JSON.stringify([]) }).onDuplicateKeyUpdate({ set: { name } });
-  const rows = await db.select().from(botGroups).where(eq(botGroups.jid, jid)).limit(1);
-  const row = rows[0];
-  const value = {
-    jid,
-    name: row?.name ?? name,
-    activePrefix: row?.activePrefix ?? "!",
-    prefixes: row ? parseJson<string[]>(row.prefixes, ["!", "/", "#", "."]) : ["!", "/", "#", "."],
-    disabledCommands: row ? parseJson<string[]>(row.disabledCommands, []) : [],
-  };
-  groupCache.set(jid, { value, expiresAt: Date.now() + GROUP_CACHE_TTL_MS });
-  return value;
 }
 
 export async function updateGroupConfig(jid: string, patch: Partial<{ name: string; activePrefix: string; prefixes: string[]; disabledCommands: string[] }>) {
   groupCache.delete(jid);
+  pendingGroupLoads.delete(jid);
   const db = await getDb();
   if (!db) return;
   await db.insert(botGroups).values({

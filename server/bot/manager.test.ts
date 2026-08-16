@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { issuePairingCode, pairingCodeIsActive, singleFlight } from "./manager";
+import { issuePairingCode, pairingCodeIsActive, singleFlight, shouldRetryConnection } from "./manager";
 
 describe("GGZN pairing lifecycle", () => {
   it("recognizes an active and expired code", () => {
@@ -13,6 +13,14 @@ describe("GGZN pairing lifecycle", () => {
     expect(pairingCodeIsActive(oldCode.pairingExpiresAt, 70000)).toBe(false);
     expect(newCode.pairingCode).not.toBe(oldCode.pairingCode);
     expect(newCode.pairingExpiresAt).toBeGreaterThan(newCode.pairingIssuedAt);
+  });
+
+  it("limits reconnect attempts after a replaced connection", () => {
+    expect(shouldRetryConnection(440, true, 0)).toBe(true);
+    expect(shouldRetryConnection(440, true, 2)).toBe(true);
+    expect(shouldRetryConnection(440, true, 3)).toBe(false);
+    expect(shouldRetryConnection(440, false, 0)).toBe(false);
+    expect(shouldRetryConnection(401, true, 0)).toBe(false);
   });
 
   it("shares one in-flight generation between concurrent callers", async () => {

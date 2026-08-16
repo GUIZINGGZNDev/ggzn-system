@@ -22,6 +22,8 @@ type BotState = {
   pairingReady?: Promise<void>;
   pairingReadyResolve?: () => void;
   registered?: boolean;
+  reconnectAttempts?: number;
+  reconnectTimer?: ReturnType<typeof setTimeout>;
 };
 
 const PAIRING_CODE_TTL_MS = 60_000;
@@ -32,6 +34,11 @@ const state = (globalRuntime[GLOBAL_RUNTIME_KEY] ??= { state: { status: "disconn
 export function pairingCodeIsActive(expiresAt?: number, now = Date.now()) { return Boolean(expiresAt && expiresAt > now); }
 export function issuePairingCode(code: string, now = Date.now()) { return { pairingCode: code, pairingIssuedAt: now, pairingExpiresAt: now + PAIRING_CODE_TTL_MS }; }
 export function singleFlight<T>(holder: { pending?: Promise<T> }, task: () => Promise<T>) { if (!holder.pending) holder.pending = task().finally(() => { holder.pending = undefined; }); return holder.pending; }
+export function shouldRetryConnection(code: number | undefined, registered: boolean, attempts: number) {
+  if (code === DisconnectReason.loggedOut || code === 401) return false;
+  if (code === 440 && (!registered || attempts >= 3)) return false;
+  return true;
+}
 
 async function ensureSessionDir() {
   await fs.mkdir(SESSION_DIR, { recursive: true });
@@ -72,6 +79,7 @@ export async function startBot() {
         await updateSession(PHONE, "needs_pairing");
       }
       if (connection === "open") {
+        state.reconnectAttempts = 0;
         state.status = "connected";
         state.registered = true;
         state.pairingReadyResolve?.();
@@ -88,10 +96,15 @@ export async function startBot() {
         state.lastError = `connection closed: ${code ?? "unknown"}`;
         console.warn(`[GGZN] connection closed code=${code ?? "unknown"}`);
         state.pairingReadyResolve?.();
-        const shouldReconnect = code !== DisconnectReason.loggedOut && code !== 401 && code !== 440;
+        const attempts = state.reconnectAttempts ?? 0;
+        const shouldReconnect = shouldRetryConnection(code, Boolean(state.registered), attempts);
         state.status = shouldReconnect ? "disconnected" : "needs_pairing";
         await updateSession(PHONE, state.status, `connection closed: ${code ?? "unknown"}`);
-        if (shouldReconnect) setTimeout(() => void startBot(), 2500);
+        if (shouldReconnect) {
+          state.reconnectAttempts = attempts + 1;
+          const delay = code === 440 ? Math.min(3000 * state.reconnectAttempts, 9000) : 2500;
+          state.reconnectTimer = setTimeout(() => { state.reconnectTimer = undefined; void startBot(); }, delay);
+        }
       }
     });
     sock.ev.on("messages.upsert", async ({ messages }) => {
@@ -99,6 +112,7 @@ export async function startBot() {
         const startedAt = performance.now();
         const jid = message.key.remoteJid;
         const command = commandLabel(message) ?? "unknown";
+        console.info(`[GGZN][message][received] command=${command} jid=${jid ?? "unknown"}`);
         try {
           if (jid && !message.key.fromMe) void sock.readMessages([message.key]).catch(() => undefined);
           await handleIncomingMessage(sock, message);
@@ -106,6 +120,7 @@ export async function startBot() {
           console.error("[GGZN] message handler error", error);
         } finally {
           const elapsed = Math.round(performance.now() - startedAt);
+          console.info(`[GGZN][message][processed] ${elapsed}ms command=${command} jid=${jid ?? "unknown"}`);
           if (elapsed > 250) console.info(`[GGZN][latency] ${elapsed}ms command=${command} jid=${jid ?? "unknown"}`);
         }
       }));
