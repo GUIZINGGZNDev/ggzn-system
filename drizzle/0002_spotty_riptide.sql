@@ -1,0 +1,1 @@
+ALTER TABLE `bot_members` ADD CONSTRAINT `bot_members_group_user_unique` UNIQUE(`groupJid`,`userJid`);

@@ -1,5 +1,27 @@
 {
   "version": "7",
   "dialect": "mysql",
-  "entries": []
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1786880634650,
+      "tag": "0000_thankful_wilson_fisk",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1786880768863,
+      "tag": "0001_pale_ink",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1786880975237,
+      "tag": "0002_spotty_riptide",
+      "breakpoints": true
+    }
+  ]
 }
