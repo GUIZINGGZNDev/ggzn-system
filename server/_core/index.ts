@@ -9,7 +9,9 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { registerBotRoutes } from "../bot/routes";
-import { startBot } from "../bot/manager";
+import { getConnectedSocket, startBot } from "../bot/manager";
+import { getPendingReminderByTaskUid, markReminderSent } from "../db";
+import { sdk } from "./sdk";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -39,6 +41,21 @@ async function startServer() {
   registerStorageProxy(app);
   registerOAuthRoutes(app);
   registerBotRoutes(app);
+  app.post("/api/scheduled/botReminder", async (req, res) => {
+    try {
+      const user = await sdk.authenticateRequest(req);
+      if (!user.isCron || !user.taskUid) return res.status(403).json({ error: "cron-only" });
+      const reminder = await getPendingReminderByTaskUid(user.taskUid);
+      if (!reminder) return res.json({ ok: true, skipped: "already-delivered-or-missing" });
+      const sock = getConnectedSocket();
+      if (!sock) return res.status(503).json({ error: "bot-not-connected" });
+      await sock.sendMessage(reminder.chatJid, { text: `⏰ LEMBRETE GGZN\n${reminder.text}` });
+      await markReminderSent(reminder.id);
+      return res.json({ ok: true, reminderId: reminder.id });
+    } catch (error) {
+      return res.status(500).json({ error: String(error), timestamp: new Date().toISOString() });
+    }
+  });
   // tRPC API
   app.use(
     "/api/trpc",

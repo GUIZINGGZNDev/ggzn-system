@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { AutoReply, BotRule, FeatureConfig, InsertUser, JoinMessages, botGroups, botMembers, botSessions, users } from "../drizzle/schema";
+import { AutoReply, BotReminder, BotRule, FeatureConfig, InsertUser, JoinMessages, botGroups, botMembers, botReminders, botSessions, users } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -161,6 +161,32 @@ export async function updateGroupConfig(jid: string, patch: Partial<{ name: stri
       ...(patch.featureConfig !== undefined ? { featureConfig: JSON.stringify(patch.featureConfig) } : {}),
     },
   });
+}
+
+export async function createReminder(reminder: { chatJid: string; senderJid: string; text: string; dueAt: Date }) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.insert(botReminders).values(reminder);
+  return Number(result[0]?.insertId ?? 0);
+}
+
+export async function attachReminderTask(id: number, taskUid: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(botReminders).set({ taskUid }).where(eq(botReminders.id, id));
+}
+
+export async function getPendingReminderByTaskUid(taskUid: string): Promise<BotReminder | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const rows = await db.select().from(botReminders).where(and(eq(botReminders.taskUid, taskUid), eq(botReminders.status, "pending"))).limit(1);
+  return rows[0];
+}
+
+export async function markReminderSent(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(botReminders).set({ status: "sent" }).where(eq(botReminders.id, id));
 }
 
 export async function getMemberRole(groupJid: string, userJid: string) {

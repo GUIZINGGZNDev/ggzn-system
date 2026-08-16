@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { WASocket, WAMessage } from "@whiskeysockets/baileys";
-import { applyPrefixAction, atLeast, calculate, formatJoinMessage, getMainMenu, getMenu, handleGroupParticipantsUpdate, handleIncomingMessage, MENU_NUMBER_MAP, moderationEffect, requiredRoleForCommand, safeZoeiraResponse, withTimeout, MEDIA_TIMEOUT_MS } from "./commands";
+import { applyPrefixAction, atLeast, calculate, formatJoinMessage, getMainMenu, getMenu, handleGroupParticipantsUpdate, handleIncomingMessage, MENU_NUMBER_MAP, moderationEffect, parseReminderDelay, requiredRoleForCommand, safeZoeiraResponse, withTimeout, MEDIA_TIMEOUT_MS } from "./commands";
 import { getOrCreateGroup } from "../db";
 
 function ownerMessage(text: string, quoted = false) {
@@ -19,6 +19,13 @@ function mockSocket() {
 }
 
 describe("GGZN command permissions", () => {
+  it("parses safe reminder durations", () => {
+    expect(parseReminderDelay("10m")).toBe(600000);
+    expect(parseReminderDelay("2h")).toBe(7200000);
+    expect(parseReminderDelay("20s")).toBeUndefined();
+    expect(parseReminderDelay("10d")).toBeUndefined();
+  });
+
   it("renders safe placeholders for join messages", () => {
     expect(formatJoinMessage("Olá {nome}, bem-vindo ao {grupo}! {mention} {numero}", "5534999999999@s.whatsapp.net", "GGZN TESTE")).toBe("Olá @5534999999999, bem-vindo ao GGZN TESTE! @5534999999999 5534999999999");
   });

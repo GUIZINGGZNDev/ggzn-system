@@ -27,6 +27,17 @@ export const botGroups = mysqlTable("bot_groups", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+export const botReminders = mysqlTable("bot_reminders", {
+  id: int("id").autoincrement().primaryKey(),
+  taskUid: varchar("taskUid", { length: 65 }).unique(),
+  chatJid: varchar("chatJid", { length: 191 }).notNull(),
+  senderJid: varchar("senderJid", { length: 191 }).notNull(),
+  text: varchar("text", { length: 1000 }).notNull(),
+  status: mysqlEnum("status", ["pending", "sent", "cancelled"]).notNull().default("pending"),
+  dueAt: timestamp("dueAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 export const botMembers = mysqlTable("bot_members", {
   id: int("id").autoincrement().primaryKey(),
   groupJid: varchar("groupJid", { length: 191 }).notNull(),
@@ -52,6 +63,7 @@ export const botSessions = mysqlTable("bot_sessions", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type BotGroup = typeof botGroups.$inferSelect;
+export type BotReminder = typeof botReminders.$inferSelect;
 export type BotRule = { id: string; text: string; enabled: boolean };
 export type AutoReply = { trigger: string; response: string; enabled: boolean };
 export type JoinMessages = {

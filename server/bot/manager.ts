@@ -170,3 +170,4 @@ export async function requestPairingCode() {
 }
 
 export function getPhone() { return PHONE; }
+export function getConnectedSocket() { return state.status === "connected" ? state.sock : undefined; }

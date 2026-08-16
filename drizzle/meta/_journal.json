@@ -50,6 +50,13 @@
       "when": 1786898215371,
       "tag": "0006_goofy_mentor",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1786898614337,
+      "tag": "0007_noisy_bulldozer",
+      "breakpoints": true
     }
   ]
 }

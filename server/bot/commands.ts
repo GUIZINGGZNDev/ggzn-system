@@ -3,7 +3,8 @@ import { downloadMediaMessage, getContentType } from "@whiskeysockets/baileys";
 import sharp from "sharp";
 import QRCode from "qrcode";
 import { invokeLLM } from "../_core/llm";
-import { DEFAULT_FEATURE_CONFIG, DEFAULT_JOIN_MESSAGES, getMemberRole, getOrCreateGroup, updateGroupConfig, upsertMember } from "../db";
+import { createHeartbeatJob } from "../_core/heartbeat";
+import { attachReminderTask, createReminder, DEFAULT_FEATURE_CONFIG, DEFAULT_JOIN_MESSAGES, getMemberRole, getOrCreateGroup, updateGroupConfig, upsertMember } from "../db";
 import { getBotState, getPhone } from "./manager";
 
 const ROLE_LEVEL = { member: 1, moderator: 2, admin: 3, owner: 4 } as const;
@@ -24,6 +25,15 @@ const truthChallenges = ["Conte uma coisa que quase ninguém sabe sobre você.",
 const dareChallenges = ["Envie um sticker que represente seu humor.", "Escreva uma frase usando apenas letras maiúsculas.", "Mande uma foto do seu papel de parede, se quiser."];
 const quizQuestions = ["Qual comando mostra o status do bot?\nA) !grupo\nB) !status\nC) !id", "Qual prefixo é aceito por padrão?\nA) !\nB) @\nC) $", "Qual comando abre o menu?\nA) !menu\nB) !abrir\nC) !painel"];
 export function getMemberStats(groupJid: string, userJid: string) { return memberMessageStats.get(`${groupJid}:${userJid}`) ?? { count: 0, firstSeen: Date.now(), lastSeen: Date.now() }; }
+export function parseReminderDelay(value: string) {
+  const match = value.match(/^(\d{1,4})(s|m|h)$/i);
+  if (!match) return undefined;
+  const amount = Number(match[1]);
+  const unit = match[2].toLowerCase();
+  const milliseconds = unit === "s" ? amount * 1000 : unit === "m" ? amount * 60_000 : amount * 3_600_000;
+  return milliseconds >= 60_000 && milliseconds <= 7 * 24 * 3_600_000 ? milliseconds : undefined;
+}
+
 async function llmText(instruction: string, input: string) {
   const response = await Promise.race([
     invokeLLM({ messages: [{ role: "system", content: "Responda em português brasileiro, de forma curta e segura." }, { role: "user", content: `${instruction}\n\n${input.slice(0, 3000)}` }] }),
@@ -498,9 +508,26 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
   if (command === "config" && args[0]?.toLowerCase() === "resumo") { await reply(sock, jid, `CONFIGURAÇÃO\nPrefixo: ${group.activePrefix}\nAnti-flood: ${group.featureConfig.antiFlood ? "ON" : "OFF"}\nLinks: ${group.featureConfig.blockLinks ? "BLOQUEADOS" : "LIBERADOS"}\nSlowmode: ${group.featureConfig.slowmodeSeconds || "OFF"}\nBoas-vindas: ${group.joinMessages.welcome.enabled ? "ON" : "OFF"}\nDespedida: ${group.joinMessages.farewell.enabled ? "ON" : "OFF"}`); return; }
   if (command === "backup" && args[0]?.toLowerCase() === "config") { if (!isGroup(jid) || !(await requireRole(sock, jid, sender, "admin"))) return; await reply(sock, jid, `BACKUP DE CONFIGURAÇÃO\n${JSON.stringify({ prefix: group.activePrefix, features: group.featureConfig, joinMessages: group.joinMessages }).slice(0, 3500)}`); return; }
   if (command === "calendario") { await reply(sock, jid, new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(new Date())); return; }
+  if (command === "lembrete") {
+    const delay = parseReminderDelay(args[0] ?? "");
+    const reminderText = args.slice(1).join(" ").trim().slice(0, 1000);
+    if (!delay || !reminderText) return reply(sock, jid, "Use !lembrete 10m texto. O mínimo é 1 minuto.");
+    const dueAt = new Date(Date.now() + delay);
+    dueAt.setSeconds(0, 0);
+    const id = await createReminder({ chatJid: jid, senderJid: sender, text: reminderText, dueAt });
+    if (!id) return reply(sock, jid, "Lembretes persistentes estão indisponíveis no momento.");
+    try {
+      const job = await createHeartbeatJob({ name: `ggzn-reminder-${id}-${Date.now()}`, cron: `0 ${dueAt.getUTCMinutes()} ${dueAt.getUTCHours()} ${dueAt.getUTCDate()} ${dueAt.getUTCMonth() + 1} *`, path: "/api/scheduled/botReminder", description: `GGZN reminder ${id}` }, "");
+      await attachReminderTask(id, job.taskUid);
+      await reply(sock, jid, `Lembrete criado para ${dueAt.toLocaleString("pt-BR")}.`);
+    } catch {
+      await reply(sock, jid, "Não foi possível registrar o lembrete no agendador.");
+    }
+    return;
+  }
   if (command === "qr") { const value = args.join(" ").trim(); if (!value) return reply(sock, jid, "Use !qr texto ou !qr link"); const qr = await QRCode.toBuffer(value.slice(0, 1000), { width: 420, margin: 2 }); await sock.sendMessage(jid, { image: qr, caption: "QR Code gerado pelo GGZN SYSTEM." }); return; }
   if (command === "encurtar") { const value = args[0]; if (!value || !LINK_PATTERN.test(value)) return reply(sock, jid, "Envie um link válido."); await reply(sock, jid, `Link recebido e validado: ${value.slice(0, 500)}`); return; }
-  if (command === "dado") { const notation = args[0] ?? "1d6"; const match = notation.match(/^(\\d{1,2})d(\\d{1,4})$/i); if (!match) return reply(sock, jid, "Use !dado 2d6"); const amount = Math.min(Number(match[1]), 20); const sides = Math.min(Number(match[2]), 1000); const rolls = Array.from({ length: amount }, () => Math.floor(Math.random() * sides) + 1); await reply(sock, jid, `DADO ${notation}: ${rolls.join(" + ")} = ${rolls.reduce((sum, value) => sum + value, 0)}`); return; }
+  if (command === "dado") { const notation = args[0] ?? "1d6"; const match = notation.match(/^(\d{1,2})d(\d{1,4})$/i); if (!match) return reply(sock, jid, "Use !dado 2d6"); const amount = Math.min(Number(match[1]), 20); const sides = Math.min(Number(match[2]), 1000); const rolls = Array.from({ length: amount }, () => Math.floor(Math.random() * sides) + 1); await reply(sock, jid, `DADO ${notation}: ${rolls.join(" + ")} = ${rolls.reduce((sum, value) => sum + value, 0)}`); return; }
   if (command === "verdade" || command === "desafio") { const list = command === "verdade" ? truthChallenges : dareChallenges; await reply(sock, jid, `${command.toUpperCase()}: ${list[Math.floor(Math.random() * list.length)]}`); return; }
   if (command === "quiz") { await reply(sock, jid, quizQuestions[Math.floor(Math.random() * quizQuestions.length)]); return; }
   if (command === "enquete") { const question = args.join(" ").trim(); if (!question) return reply(sock, jid, "Use !enquete pergunta"); await sock.sendMessage(jid, { poll: { name: question.slice(0, 200), values: ["Sim", "Não", "Talvez"], selectableCount: 1 } }); return; }
@@ -535,7 +562,7 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
     if (action === "teste") {
       const participant = sender;
       const text = formatJoinMessage(current.text, participant, group.name);
-      await sock.sendMessage(jid, { text, mentions: [participant.replace(/:\\d+/, "")] });
+      await sock.sendMessage(jid, { text, mentions: [participant.replace(/:\d+/, "")] });
       return;
     }
     await reply(sock, jid, `Use !${command} set texto | !${command} on/off | !${command} status | !${command} teste`);

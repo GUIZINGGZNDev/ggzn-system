@@ -292,7 +292,7 @@
 - [x] Implementar slowmode, antiflood, bloqueio de links e controles antiabuso
 - [x] Implementar configuração, logs, backup de configuração e controles de comandos
 - [x] Implementar calendário, QR Code, validação de links e utilidades extras
-- [ ] Implementar lembretes persistentes via Heartbeat, sem timers locais
+- [x] Implementar lembretes persistentes via Heartbeat, sem timers locais
 - [x] Implementar comandos de IA para resumo, correção, ideias e enquetes
 - [x] Implementar jogos de dado, quiz e verdade ou desafio
 - [x] Implementar uptime, latência, manutenção e changelog
