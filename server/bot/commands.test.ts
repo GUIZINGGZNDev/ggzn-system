@@ -49,27 +49,28 @@ describe("GGZN command permissions", () => {
     expect(getMenu("inexistente")).toBeUndefined();
   });
 
-  it("covers the long main menu and every category with dynamic prefixes", () => {
+  it("covers the GGZN CORPORATION panel and categories with dynamic prefixes", () => {
     const main = getMainMenu("$");
-    expect(main).toContain("│    MENU PRINCIPAL  │");
-    expect(main).toContain("│ 01  ADM             │");
-    expect(main).toContain("│ 06  CONFIGURAÇÕES   │");
+    expect(main).toContain("│     GGZN CORPORATION     │");
+    expect(main).toContain("$menu 1 / ADM");
+    expect(main).toContain("$menu 7 / IA / AUTO RESPONDER");
     expect(main).toContain("Exemplo: $menu 1");
-    expect(main.split("\\n").length).toBeGreaterThan(12);
-    expect(getMenu("cargos", "$")).toContain("$promover moderador @membro");
-    expect(getMenu("zoeira", "$")).toContain("$trava-zap — retorna aviso e permanece bloqueado");
-    expect(getMenu("info", "$")).toContain("$help categoria — abre um submenu específico");
-    expect(getMenu("config", "$")).toContain("$prefixo add ? — adiciona um prefixo alternativo");
+    expect(main.split("\\n").length).toBeGreaterThan(18);
+    expect(getMenu("mod", "$")).toContain("$silenciar — fecha o grupo para membros");
+    expect(getMenu("site", "$")).toContain("Site oficial:");
+    expect(getMenu("textos", "$")).toContain("$stext frase — cria figurinha com texto");
+    expect(getMenu("ia", "$")).toContain("$traduzir pt texto — traduz texto para português");
   });
 
-  it("supports the Premium numeric menu navigation", () => {
+  it("supports the seven GGZN CORPORATION numeric menu options", () => {
     const main = getMainMenu("!");
-    expect(main).toContain("│ 01  ADM             │");
-    expect(main).toContain("│ 06  CONFIGURAÇÕES   │");
+    expect(main).toContain("!menu 4 / MODERAÇÃO / MOD");
+    expect(main).toContain("!menu 5 / SITE OFC");
     expect(MENU_NUMBER_MAP["1"]).toBe("adm");
-    expect(MENU_NUMBER_MAP["4"]).toBe("zoeira");
+    expect(MENU_NUMBER_MAP["2"]).toBe("zoeira");
+    expect(MENU_NUMBER_MAP["7"]).toBe("ia");
     expect(getMenu("adm", "!")).toContain("MENU ADM");
-    expect(getMenu("membros", "!")).toContain("MENU MEMBROS");
+    expect(getMenu("zoeira", "!")).toContain("MENU ZOEIRA");
   });
 
   it("assigns safe permission levels and effects to moderation commands", () => {

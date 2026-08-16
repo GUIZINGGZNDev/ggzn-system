@@ -202,3 +202,7 @@
 - [x] Remover repetições e reorganizar o painel principal em blocos visuais curtos
 - [x] Alinhar categorias numeradas e separar instruções do catálogo
 - [x] Atualizar testes de formatação e publicar a correção
+
+- [x] Definir mapa `!menu 1` a `!menu 7` com nomes GGZN CORPORATION
+- [x] Reformatar painel principal com linhas separadoras e comandos no formato solicitado
+- [x] Manter compatibilidade com categorias existentes e atualizar testes/publicação
