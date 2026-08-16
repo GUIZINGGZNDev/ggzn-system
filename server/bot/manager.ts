@@ -25,7 +25,10 @@ type BotState = {
 };
 
 const PAIRING_CODE_TTL_MS = 60_000;
-const state: BotState = { status: "disconnected" };
+const GLOBAL_RUNTIME_KEY = "__GGZN_BOT_RUNTIME__";
+type GlobalRuntime = { state: BotState };
+const globalRuntime = globalThis as typeof globalThis & { [GLOBAL_RUNTIME_KEY]?: GlobalRuntime };
+const state = (globalRuntime[GLOBAL_RUNTIME_KEY] ??= { state: { status: "disconnected" } }).state;
 export function pairingCodeIsActive(expiresAt?: number, now = Date.now()) { return Boolean(expiresAt && expiresAt > now); }
 export function issuePairingCode(code: string, now = Date.now()) { return { pairingCode: code, pairingIssuedAt: now, pairingExpiresAt: now + PAIRING_CODE_TTL_MS }; }
 export function singleFlight<T>(holder: { pending?: Promise<T> }, task: () => Promise<T>) { if (!holder.pending) holder.pending = task().finally(() => { holder.pending = undefined; }); return holder.pending; }
@@ -40,6 +43,8 @@ export function getBotState() {
 
 export async function startBot() {
   if (state.connecting) return state.connecting;
+  if (state.sock && ["connecting", "connected", "needs_pairing"].includes(state.status)) return;
+
   state.connecting = (async () => {
     await ensureSessionDir();
     state.status = "connecting";
@@ -83,7 +88,7 @@ export async function startBot() {
         state.lastError = `connection closed: ${code ?? "unknown"}`;
         console.warn(`[GGZN] connection closed code=${code ?? "unknown"}`);
         state.pairingReadyResolve?.();
-        const shouldReconnect = code !== DisconnectReason.loggedOut && code !== 401;
+        const shouldReconnect = code !== DisconnectReason.loggedOut && code !== 401 && code !== 440;
         state.status = shouldReconnect ? "disconnected" : "needs_pairing";
         await updateSession(PHONE, state.status, `connection closed: ${code ?? "unknown"}`);
         if (shouldReconnect) setTimeout(() => void startBot(), 2500);

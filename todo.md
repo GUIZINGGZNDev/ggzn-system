@@ -137,3 +137,14 @@
 - [x] Atualizar docs/whatsapp-transport.md com os resultados dos contratos HTTP 410, 503 e QR autorizado
 
 - [x] Documentar explicitamente que QR foi emitido, `connected` depende do escaneamento real e o transporte foi pausado após 401/408
+
+- [ ] Reativar temporariamente o endpoint QR privado para uma única tentativa
+- [ ] Limpar apenas a sessão Baileys não conectada
+- [ ] Gerar um QR novo e entregar somente ao proprietário
+- [ ] Confirmar connected ou registrar nova recusa 401/408
+- [ ] Reativar manutenção se a tentativa falhar
+
+- [x] Registrar que o aparelho aparece no WhatsApp, mas a sessão não fica ativa
+- [x] Auditar fechamento Baileys 515 e estado das credenciais após o vínculo
+- [x] Evitar apagar sessão parcialmente autenticada antes de testar restauração
+- [x] Testar reinício usando credenciais existentes sem emitir novo QR
