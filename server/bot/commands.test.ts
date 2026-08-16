@@ -82,7 +82,8 @@ describe("GGZN command permissions", () => {
       "│ 05 • SITE OFICIAL            │",
       "│ 06 • TEXTOS                  │",
       "│ 07 • IA / AUTO-RESPONDER     │",
-      "└──────────────────────────────┘",
+      "│ 08 • PERFORMANCE / RÁPIDOS   │",
+      "└──────────────────────────────┘", 
       "",
       "┌─ ACESSOS ────────────────────┐",
       "│ $menu 1  •  $menu adm  │",
@@ -92,6 +93,7 @@ describe("GGZN command permissions", () => {
       "│ $menu 5  •  $menu site  │",
       "│ $menu 6  •  $menu textos│",
       "│ $menu 7  •  $menu ia    │",
+      "│ $menu 8  •  $menu performance │",
       "└──────────────────────────────┘",
     ].join("\n");
     expect(getMainMenu("$")).toBe(expected);
@@ -99,6 +101,7 @@ describe("GGZN command permissions", () => {
     expect(getMenu("site", "$")).toContain("Site oficial:");
     expect(getMenu("textos", "$")).toContain("$stext frase");
     expect(getMenu("ia", "$")).toContain("$traduzir pt texto");
+    expect(getMenu("performance", "$")).toContain("$saude");
     expect(getMainMenu("$")).not.toContain("\\n");
     expect(getMenu("adm", "$")).not.toContain("\\n");
     expect(getMenu("adm1", "$")).not.toContain("\\n");

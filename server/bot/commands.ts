@@ -54,7 +54,7 @@ type Role = keyof typeof ROLE_LEVEL;
 
 const commandLine = (prefix: string, command: string, _description: string) => `${prefix}${command}`;
 const submenuRule = "────────────────────────────────";
-export const MENU_NUMBER_MAP = { "1": "adm", "2": "zoeira", "3": "info", "4": "mod", "5": "site", "6": "textos", "7": "ia" } as const;
+export const MENU_NUMBER_MAP = { "1": "adm", "2": "zoeira", "3": "info", "4": "mod", "5": "site", "6": "textos", "7": "ia", "8": "performance" } as const;
 const getMenuSection = (value?: string) => value ? MENU_NUMBER_MAP[value as keyof typeof MENU_NUMBER_MAP] ?? value : undefined;
 export const getMainMenu = (prefix: string) => [
   "╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮",
@@ -71,6 +71,7 @@ export const getMainMenu = (prefix: string) => [
   "│ 05 • SITE OFICIAL            │",
   "│ 06 • TEXTOS                  │",
   "│ 07 • IA / AUTO-RESPONDER     │",
+  "│ 08 • PERFORMANCE / RÁPIDOS   │",
   "└──────────────────────────────┘",
   "",
   "┌─ ACESSOS ────────────────────┐",
@@ -81,6 +82,7 @@ export const getMainMenu = (prefix: string) => [
   `│ ${prefix}menu 5  •  ${prefix}menu site  │`,
   `│ ${prefix}menu 6  •  ${prefix}menu textos│`,
   `│ ${prefix}menu 7  •  ${prefix}menu ia    │`,
+  `│ ${prefix}menu 8  •  ${prefix}menu performance │`,
   "└──────────────────────────────┘",
 ].join("\n");
 const menus: Record<string, (prefix: string) => string> = {
@@ -283,6 +285,21 @@ const menus: Record<string, (prefix: string) => string> = {
     "",
     "Auto-respostas seguras e integrações possuem timeout.",
   ].join("\n"),
+  performance: (prefix) => [
+    "*MENU PERFORMANCE — RESPOSTAS RÁPIDAS*",
+    submenuRule,
+    "",
+    commandLine(prefix, "ping", "mede o retorno imediato do bot"),
+    commandLine(prefix, "saude", "mostra saúde da sessão e memória"),
+    commandLine(prefix, "memoria", "mostra uso atual de memória"),
+    commandLine(prefix, "uptime", "mostra tempo de processo"),
+    commandLine(prefix, "latencia", "mede latência local"),
+    commandLine(prefix, "cache", "mostra o estado dos caches"),
+    commandLine(prefix, "atalhos", "mostra atalhos rápidos do sistema"),
+    commandLine(prefix, "menu voltar", "volta ao menu principal"),
+    "",
+    "Este menu usa respostas locais e não depende de serviços externos.",
+  ].join("\n"),
   config: (prefix) => [
     "*MENU CONFIGURAÇÕES — POR GRUPO*",
     submenuRule,
@@ -357,6 +374,7 @@ const MENU_IMAGE_URLS: Record<string, string> = {
   textos: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-textos_ec97cb1b.jpg",
   ia: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-ai_f3682b40.jpg",
   config: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-config_a6437bd8.jpg",
+  performance: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-info_abb33e2e.jpg",
 };
 async function replyAnimated(sock: WASocket, jid: string, text: string) {
   await reply(sock, jid, text);
@@ -441,9 +459,6 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
   if (!text) return;
   const group = isGroup(jid) ? await getOrCreateGroup(jid) : { activePrefix: "!", prefixes: ["!", "/", "#", "."], disabledCommands: [] as string[], rules: [], autoReplies: [], joinMessages: DEFAULT_JOIN_MESSAGES, featureConfig: DEFAULT_FEATURE_CONFIG, jid, name: "Privado" };
   const sender = senderOf(message);
-  const statsKey = `${jid}:${sender}`;
-  const previousStats = memberMessageStats.get(statsKey) ?? { count: 0, firstSeen: Date.now(), lastSeen: Date.now() };
-  memberMessageStats.set(statsKey, { count: previousStats.count + 1, firstSeen: previousStats.firstSeen, lastSeen: Date.now() });
   const senderIsOwner = sender.replace(/\D/g, "") === getPhone();
   if (isGroup(jid) && group.featureConfig.antiFlood && !senderIsOwner) {
     const now = Date.now();
@@ -481,6 +496,13 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
   const [rawCommand, ...args] = text.slice(prefix.length).trim().split(/\s+/);
   const command = rawCommand?.toLowerCase();
   if (!command || group.disabledCommands.includes(command)) return;
+  const fastCommands = new Set(["ping", "bot", "status", "versao", "saude", "memoria", "cache", "atalhos", "uptime", "latencia"]);
+  if (!fastCommands.has(command)) {
+    const statsKey = `${jid}:${sender}`;
+    const now = Date.now();
+    const previousStats = memberMessageStats.get(statsKey) ?? { count: 0, firstSeen: now, lastSeen: now };
+    memberMessageStats.set(statsKey, { count: previousStats.count + 1, firstSeen: previousStats.firstSeen, lastSeen: now });
+  }
   if (isGroup(jid) && group.featureConfig.slowmodeSeconds > 0 && !senderIsOwner && !["menu", "help", "ping", "status", "bot"].includes(command)) {
     const slowKey = `${jid}:${sender}`;
     const now = Date.now();
@@ -515,6 +537,10 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
   }
   if (command === "prefixos") { await reply(sock, jid, `Prefixos aceitos: ${group.prefixes.join(" ")}\nAtivo: ${group.activePrefix}`); return; }
   if (command === "ping") { const startedAt = performance.now(); await reply(sock, jid, `Pong! ${Math.round(performance.now() - startedAt)}ms`); return; }
+  if (command === "saude") { const bot = getBotState(); const memory = process.memoryUsage(); await reply(sock, jid, `SAÚDE GGZN\nSessão: ${bot.status}\nMemória: ${Math.round(memory.rss / 1024 / 1024)} MB\nUptime: ${Math.floor(process.uptime())}s`); return; }
+  if (command === "memoria") { const memory = process.memoryUsage(); await reply(sock, jid, `MEMÓRIA\nRSS: ${Math.round(memory.rss / 1024 / 1024)} MB\nHeap: ${Math.round(memory.heapUsed / 1024 / 1024)} / ${Math.round(memory.heapTotal / 1024 / 1024)} MB`); return; }
+  if (command === "cache") { await reply(sock, jid, "CACHE GGZN\nConfiguração: single-flight + TTL\nCargos: TTL curto\nResposta: caminho local prioritário"); return; }
+  if (command === "atalhos") { await reply(sock, jid, `ATALHOS RÁPIDOS\n${group.activePrefix}menu 8\n${group.activePrefix}ping\n${group.activePrefix}saude\n${group.activePrefix}status\n${group.activePrefix}bot`); return; }
   if (command === "hora") { await reply(sock, jid, `Hora: ${new Intl.DateTimeFormat("pt-BR", { timeStyle: "medium", timeZone: "America/Sao_Paulo" }).format(new Date())}`); return; }
   if (command === "data") { await reply(sock, jid, `Data: ${new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeZone: "America/Sao_Paulo" }).format(new Date())}`); return; }
   if (command === "id") { await reply(sock, jid, `Chat: ${jid}\nUsuário: ${sender}`); return; }

@@ -340,3 +340,12 @@
 - [x] Testar ordem de envio, seleção correta e fallback textual
 - [x] Validar TypeScript, Vitest, build e publicar a versão completa
 
+
+- [x] Definir nova categoria de menu e comandos associados
+- [x] Implementar navegação e conteúdo do novo menu
+- [x] Adicionar comandos novos com permissões e respostas diretas
+- [x] Otimizar consultas repetidas, cache e caminho rápido de comandos
+- [x] Atualizar foto exclusiva e menus principal/Info com a nova categoria
+- [x] Adicionar testes de catálogo, latência, cache e regressões
+- [x] Validar TypeScript, Vitest, build e publicar a nova versão
+
