@@ -308,3 +308,13 @@
 - [x] Adicionar testes de presença, duração, fallback e mensagens finais dos menus
 - [x] Validar TypeScript, Vitest, build e publicar a nova versão
 
+
+- [x] Definir formato final da mídia animada para mensagens de menu
+- [x] Criar assets animados leves para menu principal e categorias
+- [x] Armazenar os assets fora do projeto e integrar URLs/arquivos no runtime do bot
+- [x] Enviar animação visual junto de cada menu com legenda textual organizada
+- [x] Implementar fallback automático para menu textual quando mídia falhar
+- [x] Adicionar testes de seleção de asset, tamanho, fallback e envio
+- [x] Validar compatibilidade do WhatsApp, latência, TypeScript, Vitest e build
+- [x] Publicar a versão com mídia animada nos menus
+

@@ -345,6 +345,7 @@ async function reply(sock: WASocket, jid: string, text: string) {
 
 const MENU_ANIMATION_MS: Record<string, number> = { principal: 140, adm: 220, adm1: 180, membros: 160, cargos: 150, zoeira: 200, info: 130, mod: 220, mod1: 180, site: 110, textos: 150, ia: 240, config: 210 };
 const MENU_ANIMATION_LABEL: Record<string, string> = { principal: "GGZN CORPORATION iniciando", adm: "Central ADM carregando", adm1: "Ferramentas avançadas abrindo", membros: "Utilidades do grupo preparando", cargos: "Hierarquia sendo sincronizada", zoeira: "Modo zoeira seguro ativando", info: "Informações do sistema carregando", mod: "Painel de moderação abrindo", mod1: "Controles de moderação preparando", site: "Acesso oficial carregando", textos: "Central de textos preparando", ia: "Núcleo IA iniciando", config: "Configurações do grupo carregando" };
+const MENU_ANIMATION_VIDEO_URL = "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-motion_c4b4c925.mp4";
 async function replyAnimated(sock: WASocket, jid: string, text: string, durationMs = 120) {
   const presence = sock.sendPresenceUpdate ? sock.sendPresenceUpdate("composing", jid).catch(() => undefined) : Promise.resolve();
   await Promise.race([presence, new Promise((resolve) => setTimeout(resolve, Math.max(60, Math.min(durationMs, 280))))]);
@@ -354,7 +355,16 @@ async function replyAnimated(sock: WASocket, jid: string, text: string, duration
 async function replyMenuAnimated(sock: WASocket, jid: string, section: string, text: string) {
   const duration = MENU_ANIMATION_MS[section] ?? MENU_ANIMATION_MS.principal;
   console.info(`[GGZN][menu][animation] section=${section} label=${MENU_ANIMATION_LABEL[section] ?? MENU_ANIMATION_LABEL.principal} duration=${duration}ms`);
-  await replyAnimated(sock, jid, text, duration);
+  const presence = sock.sendPresenceUpdate ? sock.sendPresenceUpdate("composing", jid).catch(() => undefined) : Promise.resolve();
+  await Promise.race([presence, new Promise((resolve) => setTimeout(resolve, Math.max(60, Math.min(duration, 280))))]);
+  try {
+    await sock.sendMessage(jid, { video: { url: MENU_ANIMATION_VIDEO_URL }, gifPlayback: true, caption: text });
+    if (sock.sendPresenceUpdate) await sock.sendPresenceUpdate("paused", jid).catch(() => undefined);
+  } catch (error) {
+    console.warn(`[GGZN][menu][animation-fallback] section=${section}`, error);
+    await reply(sock, jid, text);
+    if (sock.sendPresenceUpdate) await sock.sendPresenceUpdate("paused", jid).catch(() => undefined);
+  }
 }
 
 function mentionText(message: WAMessage) {

@@ -229,7 +229,7 @@ describe("GGZN message handler", () => {
   it("normalizes ordinary handler replies to real line breaks", async () => {
     const socket = mockSocket();
     await handleIncomingMessage(socket, ownerMessage("!menu"));
-    const sentText = socket.sendMessage.mock.calls[0]?.[1]?.text as string;
+    const sentText = (socket.sendMessage.mock.calls[0]?.[1]?.caption ?? socket.sendMessage.mock.calls[0]?.[1]?.text) as string;
     expect(sentText).toContain("\n");
     expect(sentText).not.toContain("\\n");
   });
@@ -241,14 +241,14 @@ describe("GGZN message handler", () => {
     await handleIncomingMessage(socket, ownerMessage("!menu voltar"));
     expect(socket.sendPresenceUpdate).toHaveBeenCalledWith("composing", "test-handler@g.us");
     expect(socket.sendPresenceUpdate).toHaveBeenCalledWith("paused", "test-handler@g.us");
-    expect(socket.sendMessage).toHaveBeenCalledWith("test-handler@g.us", expect.objectContaining({ text: expect.stringContaining("GGZN CORPORATION") }));
+    expect(socket.sendMessage).toHaveBeenCalledWith("test-handler@g.us", expect.objectContaining({ caption: expect.stringContaining("GGZN CORPORATION") }));
   });
 
   it("opens the internal admin and moderation submenus", async () => {
     for (const command of ["!menu adm 1", "!menu mod 1"]) {
       const socket = mockSocket();
       await handleIncomingMessage(socket, ownerMessage(command));
-      const text = socket.sendMessage.mock.calls[0]?.[1]?.text as string;
+      const text = (socket.sendMessage.mock.calls[0]?.[1]?.caption ?? socket.sendMessage.mock.calls[0]?.[1]?.text) as string;
       expect(text).toContain("MENU");
       expect(text).toContain("menu voltar");
     }
@@ -257,7 +257,7 @@ describe("GGZN message handler", () => {
   it("returns to the principal menu with menu voltar", async () => {
     const socket = mockSocket();
     await handleIncomingMessage(socket, ownerMessage("!menu voltar"));
-    const text = socket.sendMessage.mock.calls[0]?.[1]?.text as string;
+    const text = (socket.sendMessage.mock.calls[0]?.[1]?.caption ?? socket.sendMessage.mock.calls[0]?.[1]?.text) as string;
     expect(text).toContain("GGZN CORPORATION");
     expect(text).toContain("MENU PRINCIPAL");
   });
@@ -280,7 +280,7 @@ describe("GGZN message handler", () => {
     for (const command of ["ping", "hora", "data", "id", "regras", "grupo", "status"]) {
       const socket = mockSocket();
       await handleIncomingMessage(socket, ownerMessage(`!${command}`));
-      const text = socket.sendMessage.mock.calls[0]?.[1]?.text as string;
+      const text = (socket.sendMessage.mock.calls[0]?.[1]?.caption ?? socket.sendMessage.mock.calls[0]?.[1]?.text) as string;
       expect(text).toBeTruthy();
       expect(text).not.toContain("\\n");
       if (command === "status") {
