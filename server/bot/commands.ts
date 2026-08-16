@@ -2,7 +2,7 @@ import type { WASocket, WAMessage } from "@whiskeysockets/baileys";
 import { downloadMediaMessage, getContentType } from "@whiskeysockets/baileys";
 import sharp from "sharp";
 import { getMemberRole, getOrCreateGroup, updateGroupConfig, upsertMember } from "../db";
-import { getPhone } from "./manager";
+import { getBotState, getPhone } from "./manager";
 
 const ROLE_LEVEL = { member: 1, moderator: 2, admin: 3, owner: 4 } as const;
 const funHits = new Map<string, number[]>();
@@ -21,7 +21,8 @@ export function applyPrefixAction(current: string[], active: string, action: "ad
 }
 type Role = keyof typeof ROLE_LEVEL;
 
-const commandLine = (prefix: string, command: string, description: string) => `${prefix}${command} — ${description}`;
+const commandLine = (prefix: string, command: string, _description: string) => `${prefix}${command}`;
+const submenuRule = "────────────────────────────────";
 export const MENU_NUMBER_MAP = { "1": "adm", "2": "zoeira", "3": "info", "4": "mod", "5": "site", "6": "textos", "7": "ia" } as const;
 const getMenuSection = (value?: string) => value ? MENU_NUMBER_MAP[value as keyof typeof MENU_NUMBER_MAP] ?? value : undefined;
 export const getMainMenu = (prefix: string) => [
@@ -54,6 +55,7 @@ export const getMainMenu = (prefix: string) => [
 const menus: Record<string, (prefix: string) => string> = {
   adm: (prefix) => [
     "*MENU ADM — CONTROLE DO GRUPO*",
+    submenuRule,
     "",
     commandLine(prefix, "banir @membro", "remove definitivamente um membro"),
     commandLine(prefix, "remover @membro", "remove um membro do grupo"),
@@ -69,11 +71,13 @@ const menus: Record<string, (prefix: string) => string> = {
     commandLine(prefix, "desativar comando", "desativa um comando no grupo"),
     commandLine(prefix, "prefixo set ?", "define o prefixo ativo"),
     "",
+    submenuRule,
     "Requisito: Moderador para silenciar/anunciar/limpar.",
     "Requisito: Administrador para banir, cargos, abrir, fechar e configurações.",
   ].join("\n"),
   membros: (prefix) => [
     "*MENU MEMBROS — UTILIDADES*",
+    submenuRule,
     "",
     commandLine(prefix, "sticker", "converte a imagem enviada em figurinha"),
     commandLine(prefix, "stext frase", "cria uma figurinha com texto"),
@@ -87,9 +91,16 @@ const menus: Record<string, (prefix: string) => string> = {
     commandLine(prefix, "menu", "abre o menu completo"),
     commandLine(prefix, "help membros", "abre este submenu"),
     commandLine(prefix, "prefixos", "mostra os prefixos aceitos"),
+    commandLine(prefix, "ping", "responde com o tempo do bot"),
+    commandLine(prefix, "hora", "mostra o horário atual"),
+    commandLine(prefix, "data", "mostra a data atual"),
+    commandLine(prefix, "id", "mostra os identificadores da conversa"),
+    commandLine(prefix, "regras", "mostra as regras básicas"),
+    commandLine(prefix, "grupo", "mostra o nome e a configuração do grupo"),
   ].join("\n"),
   cargos: (prefix) => [
     "*MENU CARGOS — HIERARQUIA*",
+    submenuRule,
     "",
     commandLine(prefix, "promover @membro", "promove a administrador"),
     commandLine(prefix, "promover moderador @membro", "promove a moderador"),
@@ -102,6 +113,7 @@ const menus: Record<string, (prefix: string) => string> = {
   ].join("\n"),
   zoeira: (prefix) => [
     "*MENU ZOEIRA — DIVERSÃO CONTROLADA*",
+    submenuRule,
     "",
     commandLine(prefix, "fake texto", "encena texto sem autoria real"),
     commandLine(prefix, "gigante texto", "converte o texto para maiúsculas"),
@@ -117,6 +129,7 @@ const menus: Record<string, (prefix: string) => string> = {
   ].join("\n"),
   info: (prefix) => [
     "*MENU INFO — SISTEMA*",
+    submenuRule,
     "",
     commandLine(prefix, "menu", "mostra o menu completo"),
     commandLine(prefix, "help categoria", "abre um submenu específico"),
@@ -124,12 +137,16 @@ const menus: Record<string, (prefix: string) => string> = {
     commandLine(prefix, "prefixos", "lista os prefixos configurados"),
     commandLine(prefix, "menu cargos", "mostra a hierarquia de cargos"),
     commandLine(prefix, "menu config", "mostra a configuração por grupo"),
+    commandLine(prefix, "ping", "responde com o tempo do bot"),
+    commandLine(prefix, "id", "mostra os identificadores da conversa"),
+    commandLine(prefix, "regras", "mostra as regras básicas"),
     "",
     "GGZN SYSTEM — Node.js + Baileys.",
     "Sessão, cargos, prefixos e comandos são persistidos por grupo.",
   ].join("\n"),
   mod: (prefix) => [
     "*GGZN CORPORATION / MODERAÇÃO*",
+    submenuRule,
     "",
     commandLine(prefix, "silenciar", "fecha o grupo para membros"),
     commandLine(prefix, "abrir", "libera mensagens para o grupo"),
@@ -143,6 +160,7 @@ const menus: Record<string, (prefix: string) => string> = {
   ].join("\n"),
   site: (prefix) => [
     "*GGZN CORPORATION / SITE OFC*",
+    submenuRule,
     "",
     "Site oficial:",
     "https://ggznbot-g89bqgka.manus.space",
@@ -152,6 +170,7 @@ const menus: Record<string, (prefix: string) => string> = {
   ].join("\n"),
   textos: (prefix) => [
     "*GGZN CORPORATION / TEXTOS*",
+    submenuRule,
     "",
     commandLine(prefix, "stext frase", "cria figurinha com texto"),
     commandLine(prefix, "gigante texto", "converte texto para maiúsculas"),
@@ -162,6 +181,7 @@ const menus: Record<string, (prefix: string) => string> = {
   ].join("\n"),
   ia: (prefix) => [
     "*GGZN CORPORATION / IA*",
+    submenuRule,
     "",
     commandLine(prefix, "info termo", "busca um resumo informativo"),
     commandLine(prefix, "traduzir pt texto", "traduz texto para português"),
@@ -173,6 +193,7 @@ const menus: Record<string, (prefix: string) => string> = {
   ].join("\n"),
   config: (prefix) => [
     "*MENU CONFIGURAÇÕES — POR GRUPO*",
+    submenuRule,
     "",
     commandLine(prefix, "prefixos", "lista todos os prefixos aceitos"),
     commandLine(prefix, "prefixo set !", "substitui e ativa um prefixo"),
@@ -183,6 +204,8 @@ const menus: Record<string, (prefix: string) => string> = {
     commandLine(prefix, "ativar clima", "reativa o comando clima"),
     commandLine(prefix, "desativar spam", "desativa o comando spam"),
     commandLine(prefix, "menu config", "reabre este submenu"),
+    commandLine(prefix, "menu voltar", "volta ao menu principal"),
+    commandLine(prefix, "status", "mostra o estado do bot"),
     "",
     "Configurações exigem cargo de Administrador.",
     "Prefixos disponíveis por padrão: ! / # .",
@@ -259,11 +282,23 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
   }
 
   if (command === "menu" || command === "help") {
-    const section = getMenuSection(args[0]?.toLowerCase());
+    const requestedSection = args[0]?.toLowerCase();
+    if (requestedSection === "voltar" || requestedSection === "principal") {
+      await reply(sock, jid, getMainMenu(group.activePrefix));
+      return;
+    }
+    const section = getMenuSection(requestedSection);
     await reply(sock, jid, section && menus[section] ? menus[section](group.activePrefix) : getMainMenu(group.activePrefix));
     return;
   }
   if (command === "prefixos") { await reply(sock, jid, `Prefixos aceitos: ${group.prefixes.join(" ")}\nAtivo: ${group.activePrefix}`); return; }
+  if (command === "ping") { const startedAt = performance.now(); await reply(sock, jid, `Pong! ${Math.round(performance.now() - startedAt)}ms`); return; }
+  if (command === "hora") { await reply(sock, jid, `Hora: ${new Intl.DateTimeFormat("pt-BR", { timeStyle: "medium", timeZone: "America/Sao_Paulo" }).format(new Date())}`); return; }
+  if (command === "data") { await reply(sock, jid, `Data: ${new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeZone: "America/Sao_Paulo" }).format(new Date())}`); return; }
+  if (command === "id") { await reply(sock, jid, `Chat: ${jid}\nUsuário: ${sender}`); return; }
+  if (command === "regras") { await reply(sock, jid, "REGRAS GGZN\n1. Respeite os membros.\n2. Evite spam e conteúdo abusivo.\n3. Use os comandos conforme seu cargo.\n4. Siga as regras do grupo."); return; }
+  if (command === "grupo") { await reply(sock, jid, `Grupo: ${group.name}\nPrefixo: ${group.activePrefix}\nComandos bloqueados: ${group.disabledCommands.length}`); return; }
+  if (command === "status") { const bot = getBotState(); await reply(sock, jid, `Status: ${bot.status.toUpperCase()}\nTransporte: Baileys\nNúmero: ${bot.phone}`); return; }
   if (command === "prefixo") {
     if (!isGroup(jid) || !(await requireRole(sock, jid, sender, "admin"))) return;
     const action = args[0]?.toLowerCase();

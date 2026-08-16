@@ -226,3 +226,12 @@
 
 - [x] Testar `handleIncomingMessage` com `!menu` e garantir resposta sem `\\n` literal
 - [x] Registrar que a validação visual real no WhatsApp depende de uma nova mensagem enviada pelo proprietário; regressão automatizada aprovada e `/api/bot/status` confirmado em HTTP 200 com `connected`
+
+- [x] Auditar comandos reais atuais e definir novas funções seguras
+- [x] Aplicar linhas e separadores aos submenus ADM, zoeira, info, mod, site, textos, IA e config
+- [x] Adicionar funções reais com permissões e roteamento correspondentes
+- [x] Atualizar testes, validar build e publicar a expansão
+
+- [x] Implementar `!menu voltar` no roteador
+- [x] Tornar `!status` dinâmico usando o estado real do bot
+- [x] Publicar checkpoint da expansão dos submenus e funções

@@ -41,11 +41,11 @@ describe("GGZN command permissions", () => {
     const admMenu = getMenu("adm", "#");
     const memberMenu = getMenu("membros", "?");
     expect(admMenu).toContain("MENU ADM");
-    expect(admMenu).toContain("#banir @membro — remove definitivamente um membro");
+    expect(admMenu).toContain("#banir @membro");
     expect(admMenu).toContain("Requisito: Moderador para silenciar/anunciar/limpar.");
     expect(admMenu.split("\n").length).toBeGreaterThan(12);
-    expect(memberMenu).toContain("?sticker — converte a imagem enviada em figurinha");
-    expect(memberMenu).toContain("?clima cidade — consulta o clima");
+    expect(memberMenu).toContain("?sticker");
+    expect(memberMenu).toContain("?clima cidade");
     expect(getMenu("inexistente")).toBeUndefined();
   });
 
@@ -78,10 +78,10 @@ describe("GGZN command permissions", () => {
       "└──────────────────────────────┘",
     ].join("\n");
     expect(getMainMenu("$")).toBe(expected);
-    expect(getMenu("mod", "$")).toContain("$silenciar — fecha o grupo para membros");
+    expect(getMenu("mod", "$")).toContain("$silenciar");
     expect(getMenu("site", "$")).toContain("Site oficial:");
-    expect(getMenu("textos", "$")).toContain("$stext frase — cria figurinha com texto");
-    expect(getMenu("ia", "$")).toContain("$traduzir pt texto — traduz texto para português");
+    expect(getMenu("textos", "$")).toContain("$stext frase");
+    expect(getMenu("ia", "$")).toContain("$traduzir pt texto");
     expect(getMainMenu("$")).not.toContain("\\n");
     expect(getMenu("adm", "$")).not.toContain("\\n");
   });
@@ -171,6 +171,28 @@ describe("GGZN message handler", () => {
     const sentText = socket.sendMessage.mock.calls[0]?.[1]?.text as string;
     expect(sentText).toContain("\n");
     expect(sentText).not.toContain("\\n");
+  });
+
+  it("returns to the principal menu with menu voltar", async () => {
+    const socket = mockSocket();
+    await handleIncomingMessage(socket, ownerMessage("!menu voltar"));
+    const text = socket.sendMessage.mock.calls[0]?.[1]?.text as string;
+    expect(text).toContain("GGZN CORPORATION");
+    expect(text).toContain("MENU PRINCIPAL");
+  });
+
+  it("supports operational utility commands", async () => {
+    for (const command of ["ping", "hora", "data", "id", "regras", "grupo", "status"]) {
+      const socket = mockSocket();
+      await handleIncomingMessage(socket, ownerMessage(`!${command}`));
+      const text = socket.sendMessage.mock.calls[0]?.[1]?.text as string;
+      expect(text).toBeTruthy();
+      expect(text).not.toContain("\\n");
+      if (command === "status") {
+        expect(text).toContain("Status:");
+        expect(text).toContain("Número:");
+      }
+    }
   });
 
   it("sends explicit safe responses for spam, trava-zap and fake", async () => {
