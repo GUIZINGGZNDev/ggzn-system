@@ -75,3 +75,29 @@
 - [x] Validar no navegador o CTA “Converse com o bot / adicionar ao grupo” após a renomeação
 - [x] Testar e registrar a resposta de /api/bot/pairing após a mudança: HTTP 200 com QR ativo
 - [x] Revisar o preview final: nenhuma referência pública a “Pareamento” ou “Parear”
+
+- [x] Remover QR Code e código de conexão públicos do site por padrão
+- [x] Restringir endpoint de conexão a acesso proprietário seguro
+- [x] Garantir que o código seja gerado somente para o número configurado 5534991286637
+- [x] Validar fluxo de geração do código com sessão em estado needs_pairing
+- [x] Documentar que QR/código são temporários e não devem ser compartilhados
+
+- [x] Diagnosticar por que o código 26DPB3LG não foi aceito: a sessão fechava com código 401
+- [x] Verificar invalidação por sessão fechada 401 e código anterior inutilizável
+- [x] Corrigir o fluxo para manter um único código ativo e recriá-lo quando necessário
+- [x] Gerar novo código proprietário 4Q3XT14J com status needs_pairing
+- [x] Orientar o usuário a inserir o novo código imediatamente no fluxo correto do WhatsApp
+
+- [x] Adicionar lock single-flight para impedir duas gerações simultâneas de código
+- [x] Registrar validade de 60 segundos e emissão do código em estado técnico do backend
+- [x] Adicionar aviso de expiração e não compartilhamento na resposta ao proprietário e interface pública protegida
+- [x] Testar concorrência e substituição explícita do código anterior
+
+- [x] Registrar a falha visual de conexão do código 4Q3XT14J
+- [x] Corrigir erro de compilação introduzido pelo lock single-flight
+- [x] Testar que chamadas concorrentes compartilham o mesmo código ativo
+- [x] Invalidar sessão 401 antes de emitir novo código
+
+- [x] Incluir aviso persistente de expiração e não compartilhamento na resposta protegida de /api/bot/pairing
+- [x] Testar a política de reemissão/substituição usada por requestPairingCode após expiração
+- [x] Validar o single-flight usado pelo fluxo do endpoint com teste concorrente do helper

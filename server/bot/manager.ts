@@ -14,18 +14,25 @@ type BotState = {
   status: "disconnected" | "connecting" | "connected" | "needs_pairing";
   qrDataUrl?: string;
   pairingCode?: string;
+  pairingIssuedAt?: number;
+  pairingExpiresAt?: number;
+  pending?: Promise<string | undefined>;
   lastError?: string;
   connecting?: Promise<void>;
 };
 
+const PAIRING_CODE_TTL_MS = 60_000;
 const state: BotState = { status: "disconnected" };
+export function pairingCodeIsActive(expiresAt?: number, now = Date.now()) { return Boolean(expiresAt && expiresAt > now); }
+export function issuePairingCode(code: string, now = Date.now()) { return { pairingCode: code, pairingIssuedAt: now, pairingExpiresAt: now + PAIRING_CODE_TTL_MS }; }
+export function singleFlight<T>(holder: { pending?: Promise<T> }, task: () => Promise<T>) { if (!holder.pending) holder.pending = task().finally(() => { holder.pending = undefined; }); return holder.pending; }
 
 async function ensureSessionDir() {
   await fs.mkdir(SESSION_DIR, { recursive: true });
 }
 
 export function getBotState() {
-  return { phone: PHONE, status: state.status, qrDataUrl: state.qrDataUrl, pairingCode: state.pairingCode, lastError: state.lastError };
+  return { phone: PHONE, status: state.status, qrDataUrl: state.qrDataUrl, pairingCode: state.pairingCode, pairingIssuedAt: state.pairingIssuedAt, pairingExpiresAt: state.pairingExpiresAt, lastError: state.lastError };
 }
 
 export async function startBot() {
@@ -55,12 +62,16 @@ export async function startBot() {
         state.status = "connected";
         state.qrDataUrl = undefined;
         state.pairingCode = undefined;
+        state.pairingIssuedAt = undefined;
+        state.pairingExpiresAt = undefined;
         state.lastError = undefined;
         await updateSession(PHONE, "connected");
       }
       if (connection === "close") {
         state.sock = undefined;
-        const code = (lastDisconnect?.error as { output?: { statusCode?: number } } | undefined)?.output?.statusCode;
+        const code = (lastDisconnect?.error as { output?: { statusCode?: number }; message?: string } | undefined)?.output?.statusCode;
+        state.lastError = `connection closed: ${code ?? "unknown"}`;
+        console.warn(`[GGZN] connection closed code=${code ?? "unknown"}`);
         const shouldReconnect = code !== DisconnectReason.loggedOut;
         state.status = shouldReconnect ? "disconnected" : "needs_pairing";
         await updateSession(PHONE, state.status, `connection closed: ${code ?? "unknown"}`);
@@ -88,17 +99,33 @@ export async function startBot() {
 }
 
 export async function requestPairingCode() {
-  if (state.qrDataUrl) return undefined;
-  if (!state.sock || state.status === "disconnected") await startBot();
-  if (!state.sock) throw new Error("Sessão do bot ainda não está disponível");
-  if (state.status === "connected") return undefined;
-  await new Promise((resolve) => setTimeout(resolve, 1200));
-  const code = await state.sock.requestPairingCode(PHONE);
-  state.pairingCode = code;
-  state.qrDataUrl = undefined;
-  state.status = "needs_pairing";
-  await updateSession(PHONE, "needs_pairing");
-  return code;
+  return singleFlight(state, async () => {
+    if (state.pairingCode && pairingCodeIsActive(state.pairingExpiresAt)) return state.pairingCode;
+    state.pairingCode = undefined;
+    state.pairingIssuedAt = undefined;
+    state.pairingExpiresAt = undefined;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+    if (!state.sock || state.status === "disconnected") await startBot();
+    if (!state.sock) throw new Error("Sessão do bot ainda não está disponível");
+    if (state.status === "connected") return undefined;
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+    try {
+      state.qrDataUrl = undefined;
+      const code = await state.sock.requestPairingCode(PHONE);
+      Object.assign(state, issuePairingCode(code));
+      state.status = "needs_pairing";
+      await updateSession(PHONE, "needs_pairing");
+      return code;
+    } catch (error) {
+      if (attempt === 1) throw error;
+      state.sock = undefined;
+      state.status = "disconnected";
+      state.pairingCode = undefined;
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+    }
+    }
+    return undefined;
+  });
 }
 
 export function getPhone() { return PHONE; }

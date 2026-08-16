@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { ArrowDownRight, Copy, ExternalLink, Github, LockKeyhole, Radio, RefreshCw, Terminal, Zap, Activity, ShieldCheck, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-type BotStatus = { status: string; pairingCode?: string | null; qrDataUrl?: string | null; phone?: string };
+type BotStatus = { status: string; phone?: string };
 
 const commandGroups = [
   { label: "ADM", accent: "bg-lime-300", commands: ["banir", "remover", "silenciar", "promover", "rebaixar", "fechar", "abrir", "anunciar", "limpar"] },
@@ -13,8 +13,7 @@ const commandGroups = [
 
 export default function Home() {
   const [status, setStatus] = useState<BotStatus>({ status: "consultando" });
-  const [loadingPairing, setLoadingPairing] = useState(false);
-  const [copied, setCopied] = useState(false);
+
 
   const refresh = async () => {
     try { setStatus(await fetch("/api/bot/status").then((response) => response.json())); }
@@ -22,13 +21,7 @@ export default function Home() {
   };
   useEffect(() => { void refresh(); const timer = setInterval(() => void refresh(), 8000); return () => clearInterval(timer); }, []);
 
-  const pairing = async () => {
-    setLoadingPairing(true);
-    try { setStatus(await fetch("/api/bot/pairing").then((response) => response.json())); }
-    catch { setStatus({ status: "erro" }); }
-    finally { setLoadingPairing(false); }
-  };
-  const copyCode = async () => { if (!status.pairingCode) return; await navigator.clipboard.writeText(status.pairingCode); setCopied(true); setTimeout(() => setCopied(false), 1400); };
+  const pairing = () => undefined;
 
   return <main className="min-h-screen bg-[#f6f6f2] text-black selection:bg-black selection:text-white">
     <header className="sticky top-0 z-30 border-b-2 border-black bg-[#f6f6f2]/95 px-5 py-5 backdrop-blur-md md:px-10">
@@ -48,7 +41,7 @@ export default function Home() {
 
     <section id="comandos" className="mx-auto max-w-[1400px] px-5 py-24 md:px-10"><div className="mb-14 flex items-end justify-between gap-6"><div><span className="text-xs font-black uppercase tracking-[.2em] text-neutral-500">/ 02 — catálogo</span><h2 className="mt-3 text-6xl font-black leading-none tracking-[-.07em] md:text-8xl">COMANDOS<br /><span className="text-neutral-400">EM BLOCOS.</span></h2></div><Terminal className="hidden h-20 w-20 md:block" strokeWidth={1.4} /></div><div className="grid gap-5 md:grid-cols-2">{commandGroups.map((group, index) => <article key={group.label} className="group border-2 border-black bg-white p-6 shadow-[6px_6px_0_#050505] transition-transform duration-200 hover:-translate-y-1"><div className="mb-6 flex items-center justify-between border-b-4 border-black pb-4"><span className={`${group.accent} px-3 py-1 text-sm font-black`}>{String(index + 1).padStart(2, "0")}</span><h3 className="text-3xl font-black tracking-tight">{group.label}</h3></div><div className="flex flex-wrap gap-2">{group.commands.map((command) => <code key={command} className="border-2 border-black px-3 py-2 text-sm font-bold">!{command}</code>)}</div></article>)}</div></section>
 
-    <section id="converse" className="border-t-2 border-black bg-[#ffb866] px-5 py-24 md:px-10"><div className="mx-auto grid max-w-[1400px] gap-12 md:grid-cols-[.9fr_1.1fr]"><div><span className="text-xs font-black uppercase tracking-[.2em]">/ 03 — converse com o bot</span><h2 className="mt-4 text-6xl font-black leading-[.85] tracking-[-.07em] md:text-8xl">CONVERSE.<br />ADICIONE.<br />MANDE.</h2><p className="mt-8 max-w-md text-lg font-bold">Converse com o GGZN SYSTEM e adicione o bot ao seu grupo. A sessão é restaurada automaticamente quando as credenciais locais existem.</p><div className="mt-8 flex items-center gap-3 text-xs font-black uppercase"><span className={`h-4 w-4 ${status.status === "connected" ? "bg-lime-400" : "bg-black"}`} /> status: {status.status}</div></div><div className="border-2 border-black bg-white p-6 shadow-[8px_8px_0_#050505] md:p-8"><div className="mb-6 flex items-center justify-between border-b-4 border-black pb-4"><div><p className="text-xs font-black uppercase tracking-[.18em]">canal de conexão</p><p className="mt-2 text-2xl font-black">{status.phone ?? "5534991286637"}</p></div><Radio className="h-8 w-8" /></div>{status.qrDataUrl ? <div className="flex flex-col items-center gap-4"><img src={status.qrDataUrl} alt="QR Code para conversar com o GGZN SYSTEM" className="h-64 w-64 border-4 border-black" /><p className="text-center text-xs font-black uppercase">Escaneie no WhatsApp &gt; aparelhos conectados</p></div> : status.pairingCode ? <div className="border-4 border-black p-6 text-center"><p className="text-xs font-black uppercase">código de conexão</p><p className="my-5 break-all text-4xl font-black tracking-[.2em]">{status.pairingCode}</p><Button onClick={copyCode} className="rounded-none border-2 border-black bg-black font-black uppercase text-white hover:bg-lime-300 hover:text-black">{copied ? "Copiado" : "Copiar código"}<Copy className="ml-2 h-4 w-4" /></Button></div> : <div className="border-4 border-dashed border-black p-10 text-center"><LockKeyhole className="mx-auto mb-4 h-10 w-10" /><p className="font-black uppercase">Nenhum código ativo</p><p className="mt-2 text-sm font-bold">Clique abaixo para conversar com o bot e iniciar a conexão.</p></div>}<Button onClick={pairing} disabled={loadingPairing} className="mt-6 h-14 w-full rounded-none border-4 border-black bg-lime-300 text-black font-black uppercase tracking-widest hover:bg-black hover:text-white">{loadingPairing ? "Gerando..." : "Converse com o bot / adicionar ao grupo"}<RefreshCw className={`ml-3 h-5 w-5 ${loadingPairing ? "animate-spin" : ""}`} /></Button></div></div></section>
+    <section id="converse" className="border-t-2 border-black bg-[#ffb866] px-5 py-24 md:px-10"><div className="mx-auto grid max-w-[1400px] gap-12 md:grid-cols-[.9fr_1.1fr]"><div><span className="text-xs font-black uppercase tracking-[.2em]">/ 03 — converse com o bot</span><h2 className="mt-4 text-6xl font-black leading-[.85] tracking-[-.07em] md:text-8xl">CONVERSE.<br />ADICIONE.<br />MANDE.</h2><p className="mt-8 max-w-md text-lg font-bold">Converse com o GGZN SYSTEM e adicione o bot ao seu grupo. A sessão é restaurada automaticamente quando as credenciais locais existem.</p><div className="mt-8 flex items-center gap-3 text-xs font-black uppercase"><span className={`h-4 w-4 ${status.status === "connected" ? "bg-lime-400" : "bg-black"}`} /> status: {status.status}</div></div><div className="border-2 border-black bg-white p-6 shadow-[8px_8px_0_#050505] md:p-8"><div className="mb-6 flex items-center justify-between border-b-4 border-black pb-4"><div><p className="text-xs font-black uppercase tracking-[.18em]">canal de conexão</p><p className="mt-2 text-2xl font-black">{status.phone ?? "5534991286637"}</p></div><Radio className="h-8 w-8" /></div><div className="border-4 border-dashed border-black p-10 text-center"><ShieldCheck className="mx-auto mb-4 h-10 w-10" /><p className="font-black uppercase">Conexão protegida</p><p className="mt-2 text-sm font-bold">O código do proprietário não é exibido publicamente. Use o acesso privado do operador para conectar o número.</p></div><Button disabled className="mt-6 h-14 w-full rounded-none border-4 border-black bg-neutral-200 text-black font-black uppercase tracking-widest">Acesso do proprietário</Button></div></div></section>
 
     <footer className="border-t-4 border-black px-5 py-8 md:px-10"><div className="mx-auto flex max-w-[1400px] flex-col justify-between gap-5 text-xs font-black uppercase md:flex-row"><span>GGZN SYSTEM © 2026</span><span>Link direto / sem login / acesso restrito por divulgação</span><a href="#" className="underline">voltar ao topo ↑</a></div></footer>
   </main>;
