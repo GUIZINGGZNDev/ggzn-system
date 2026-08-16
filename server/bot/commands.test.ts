@@ -51,11 +51,12 @@ describe("GGZN command permissions", () => {
 
   it("covers the GGZN CORPORATION panel and categories with dynamic prefixes", () => {
     const main = getMainMenu("$");
-    expect(main).toContain("│     GGZN CORPORATION     │");
-    expect(main).toContain("$menu 1 / ADM");
-    expect(main).toContain("$menu 7 / IA / AUTO RESPONDER");
-    expect(main).toContain("Exemplo: $menu 1");
-    expect(main.split("\\n").length).toBeGreaterThan(18);
+    expect(main).toContain("│          GGZN CORPORATION              │");
+    expect(main).toContain("Prefixo atual: [ $ ]");
+    expect(main).toContain("👑 [1]  ADM             ▸ $menu 1 ou $menu adm");
+    expect(main).toContain("🤖 [7]  IA / AUTO-RESP  ▸ $menu 7 ou $menu ia");
+    expect(main).toContain("💡 Use $menu + número ou nome da categoria.");
+    expect(main.split("\\n").length).toBeGreaterThan(16);
     expect(getMenu("mod", "$")).toContain("$silenciar — fecha o grupo para membros");
     expect(getMenu("site", "$")).toContain("Site oficial:");
     expect(getMenu("textos", "$")).toContain("$stext frase — cria figurinha com texto");
@@ -64,8 +65,8 @@ describe("GGZN command permissions", () => {
 
   it("supports the seven GGZN CORPORATION numeric menu options", () => {
     const main = getMainMenu("!");
-    expect(main).toContain("!menu 4 / MODERAÇÃO / MOD");
-    expect(main).toContain("!menu 5 / SITE OFC");
+    expect(main).toContain("🛡️  [4]  MODERAÇÃO      ▸ !menu 4 ou !menu mod");
+    expect(main).toContain("🌐 [5]  SITE OFICIAL    ▸ !menu 5 ou !menu site");
     expect(MENU_NUMBER_MAP["1"]).toBe("adm");
     expect(MENU_NUMBER_MAP["2"]).toBe("zoeira");
     expect(MENU_NUMBER_MAP["7"]).toBe("ia");

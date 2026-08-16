@@ -206,3 +206,7 @@
 - [x] Definir mapa `!menu 1` a `!menu 7` com nomes GGZN CORPORATION
 - [x] Reformatar painel principal com linhas separadoras e comandos no formato solicitado
 - [x] Manter compatibilidade com categorias existentes e atualizar testes/publicação
+
+- [x] Aplicar moldura maior e cabeçalho GGZN CORPORATION conforme referência
+- [x] Adicionar ícones, prefixo entre colchetes e comandos alinhados
+- [x] Atualizar rodapé de instruções, testes e publicação
