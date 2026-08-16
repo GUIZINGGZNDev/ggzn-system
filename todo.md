@@ -318,3 +318,10 @@
 - [x] Validar compatibilidade do WhatsApp, latência, TypeScript, Vitest e build
 - [x] Publicar a versão com mídia animada nos menus
 
+
+- [x] Enviar o MP4 do menu sem legenda
+- [x] Enviar o menu completo como texto normal após o vídeo
+- [x] Preservar fallback textual quando o envio do MP4 falhar
+- [x] Atualizar testes para validar duas mensagens e ordem de envio
+- [x] Validar TypeScript, Vitest, build e publicar a correção
+

@@ -358,11 +358,12 @@ async function replyMenuAnimated(sock: WASocket, jid: string, section: string, t
   const presence = sock.sendPresenceUpdate ? sock.sendPresenceUpdate("composing", jid).catch(() => undefined) : Promise.resolve();
   await Promise.race([presence, new Promise((resolve) => setTimeout(resolve, Math.max(60, Math.min(duration, 280))))]);
   try {
-    await sock.sendMessage(jid, { video: { url: MENU_ANIMATION_VIDEO_URL }, gifPlayback: true, caption: text });
-    if (sock.sendPresenceUpdate) await sock.sendPresenceUpdate("paused", jid).catch(() => undefined);
+    await sock.sendMessage(jid, { video: { url: MENU_ANIMATION_VIDEO_URL }, gifPlayback: true });
+    await reply(sock, jid, text);
   } catch (error) {
     console.warn(`[GGZN][menu][animation-fallback] section=${section}`, error);
     await reply(sock, jid, text);
+  } finally {
     if (sock.sendPresenceUpdate) await sock.sendPresenceUpdate("paused", jid).catch(() => undefined);
   }
 }
