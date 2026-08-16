@@ -214,3 +214,7 @@
 - [x] Restaurar exatamente o menu fornecido pelo usuário, sem alterações de moldura ou espaçamento
 - [x] Garantir que somente o prefixo seja dinâmico
 - [x] Criar teste estrutural do menu e publicar a correção
+
+- [x] Criar nova hierarquia visual profissional sem textos explicativos
+- [x] Organizar categorias e acessos em linhas curtas e consistentes
+- [x] Atualizar teste estrutural do menu e publicar a versão final

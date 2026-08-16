@@ -49,25 +49,33 @@ describe("GGZN command permissions", () => {
     expect(getMenu("inexistente")).toBeUndefined();
   });
 
-  it("matches the user-provided GGZN CORPORATION menu layout exactly", () => {
+  it("matches the professional GGZN CORPORATION menu without explanations", () => {
     const expected = [
-      "╭────────────────────────────────────────╮",
-      "  │ GGZN CORPORATION │",
-      "  │ MENU OFICIAL │",
-      "╰────────────────────────────────────────╯",
-      "  Prefixo atual: [ $ ]",
+      "╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮",
+      "┃       GGZN CORPORATION       ┃",
+      "┃         MENU PRINCIPAL       ┃",
+      "╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯",
+      "          PREFIXO: $",
       "",
-      "  │ 👑 [1]  ADM            ▸ $menu 1 ou $menu adm",
-      "  │ 🎭 [2]  ZOEIRA         ▸ $menu 2 ou $menu zoeira",
-      "  │ ℹ️  [3]  INFO           ▸ $menu 3 ou $menu info",
-      "  │ 🛡️  [4]  MODERAÇÃO      ▸ $menu 4 ou $menu mod",
-      "  │ 🌐 [5]  SITE OFICIAL   ▸ $menu 5 ou $menu site",
-      "  │ 📝 [6]  TEXTOS         ▸ $menu 6 ou $menu textos",
-      "  │ 🤖 [7]  IA / AUTO-RESP ▸ $menu 7 ou $menu ia",
+      "┌─ CATEGORIAS ─────────────────┐",
+      "│ 01 • ADM                     │",
+      "│ 02 • ZOEIRA                  │",
+      "│ 03 • INFO                    │",
+      "│ 04 • MODERAÇÃO               │",
+      "│ 05 • SITE OFICIAL            │",
+      "│ 06 • TEXTOS                  │",
+      "│ 07 • IA / AUTO-RESPONDER     │",
+      "└──────────────────────────────┘",
       "",
-      "──────────────────────────────────────────",
-      "  💡 Use $menu + número ou nome da categoria.",
-      "  📌 Exemplo: $menu 1  ou  $menu adm",
+      "┌─ ACESSOS ────────────────────┐",
+      "│ $menu 1  •  $menu adm  │",
+      "│ $menu 2  •  $menu zoeira │",
+      "│ $menu 3  •  $menu info  │",
+      "│ $menu 4  •  $menu mod   │",
+      "│ $menu 5  •  $menu site  │",
+      "│ $menu 6  •  $menu textos│",
+      "│ $menu 7  •  $menu ia    │",
+      "└──────────────────────────────┘",
     ].join("\\n");
     expect(getMainMenu("$")).toBe(expected);
     expect(getMenu("mod", "$")).toContain("$silenciar — fecha o grupo para membros");
@@ -78,8 +86,8 @@ describe("GGZN command permissions", () => {
 
   it("supports the seven GGZN CORPORATION numeric menu options", () => {
     const main = getMainMenu("!");
-    expect(main).toContain("🛡️  [4]  MODERAÇÃO      ▸ !menu 4 ou !menu mod");
-    expect(main).toContain("🌐 [5]  SITE OFICIAL   ▸ !menu 5 ou !menu site");
+    expect(main).toContain("│ 04 • MODERAÇÃO               │");
+    expect(main).toContain("│ !menu 5  •  !menu site  │");
     expect(MENU_NUMBER_MAP["1"]).toBe("adm");
     expect(MENU_NUMBER_MAP["2"]).toBe("zoeira");
     expect(MENU_NUMBER_MAP["7"]).toBe("ia");
