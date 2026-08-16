@@ -24,7 +24,7 @@ const commandGroups = [
   { label: "ZOEIRA", code: "04", accent: "bg-fuchsia-300", description: "Diversão com limites e antiabuso.", commands: ["fake", "gigante", "spam controlado", "figurinha animada", "sorteio"] },
 ];
 
-const statusCopy: Record<string, { label: string; detail: string; tone: string }> = {
+export const statusCopy: Record<string, { label: string; detail: string; tone: string }> = {
   connected: { label: "ATIVO", detail: "Sessão WhatsApp operacional", tone: "bg-lime-300" },
   connecting: { label: "CONECTANDO", detail: "Restaurando sessão persistida", tone: "bg-orange-300" },
   needs_pairing: { label: "AGUARDANDO VÍNCULO", detail: "Conexão privada necessária", tone: "bg-orange-300" },
@@ -32,6 +32,14 @@ const statusCopy: Record<string, { label: string; detail: string; tone: string }
   offline: { label: "OFFLINE", detail: "API de status indisponível", tone: "bg-red-300" },
   consultando: { label: "CONSULTANDO", detail: "Buscando saúde da sessão", tone: "bg-neutral-300" },
 };
+
+export function getStatusPresentation(status: string) {
+  return statusCopy[status] ?? statusCopy.offline;
+}
+
+export function maskPhone(phone = "5534991286637") {
+  return `${phone.slice(0, 4)} •••• ${phone.slice(-4)}`;
+}
 
 export default function Home() {
   const [status, setStatus] = useState<BotStatus>({ status: "consultando" });
@@ -58,11 +66,8 @@ export default function Home() {
     return () => clearInterval(timer);
   }, []);
 
-  const health = statusCopy[status.status] ?? statusCopy.offline;
-  const maskedPhone = useMemo(() => {
-    const phone = status.phone ?? "5534991286637";
-    return `${phone.slice(0, 4)} •••• ${phone.slice(-4)}`;
-  }, [status.phone]);
+  const health = getStatusPresentation(status.status);
+  const maskedPhone = useMemo(() => maskPhone(status.phone), [status.phone]);
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#f6f6f2] text-black selection:bg-black selection:text-white">

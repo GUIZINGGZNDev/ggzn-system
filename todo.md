@@ -152,9 +152,13 @@
 - [x] Documentar que a limpeza seletiva não foi necessária nesta tentativa: as credenciais persistidas válidas foram preservadas e reutilizadas
 - [x] Documentar que a reativação da manutenção não foi necessária: o resultado final foi `connected`
 
-- [ ] Auditar e preparar integração privada do GGZN SYSTEM com GitHub sem expor segredos
-- [ ] Publicar o código atual em repositório privado do GitHub com documentação de setup
-- [ ] Melhorar a interface premium brutalista da landing page
-- [ ] Exibir status da sessão e conexão com maior clareza na interface
-- [ ] Refinar navegação, responsividade, acessibilidade e microinterações
-- [ ] Escrever/atualizar testes relacionados às melhorias e validar build e preview
+- [x] Auditar e preparar integração privada do GGZN SYSTEM com GitHub sem expor segredos
+- [x] Publicar o código atual em repositório privado do GitHub com documentação de setup
+- [x] Melhorar a interface premium brutalista da landing page
+- [x] Exibir status da sessão e conexão com maior clareza na interface
+- [x] Refinar navegação, responsividade, acessibilidade e microinterações
+- [x] Escrever/atualizar testes relacionados às melhorias e validar build e preview
+
+- [x] Adicionar testes automatizados para estados connected, offline, connecting e needs_pairing da interface de status
+- [x] Adicionar teste para mascaramento seguro do número exibido na interface
+- [x] Registrar separadamente a validação de build e preview desktop/mobile
