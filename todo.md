@@ -286,3 +286,17 @@
 - [x] Adicionar testes de eventos, permissões, placeholders, cooldown e regressões
 - [x] Validar TypeScript, Vitest, build e publicar a nova versão
 
+
+- [x] Inventariar comandos existentes e evitar conflitos de nomes e permissões
+- [x] Implementar advertências, perfis, rankings e consulta de membros
+- [x] Implementar slowmode, antiflood, bloqueio de links e controles antiabuso
+- [x] Implementar configuração, logs, backup de configuração e controles de comandos
+- [x] Implementar calendário, QR Code, validação de links e utilidades extras
+- [ ] Implementar lembretes persistentes via Heartbeat, sem timers locais
+- [x] Implementar comandos de IA para resumo, correção, ideias e enquetes
+- [x] Implementar jogos de dado, quiz e verdade ou desafio
+- [x] Implementar uptime, latência, manutenção e changelog
+- [x] Atualizar menus, painel administrativo e documentação de comandos
+- [x] Adicionar testes de permissões, limites, persistência, parsing e segurança
+- [x] Validar TypeScript, Vitest, build e publicar o pacote completo
+

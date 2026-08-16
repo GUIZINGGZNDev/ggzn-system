@@ -1,7 +1,9 @@
 import type { WASocket, WAMessage } from "@whiskeysockets/baileys";
 import { downloadMediaMessage, getContentType } from "@whiskeysockets/baileys";
 import sharp from "sharp";
-import { DEFAULT_JOIN_MESSAGES, getMemberRole, getOrCreateGroup, updateGroupConfig, upsertMember } from "../db";
+import QRCode from "qrcode";
+import { invokeLLM } from "../_core/llm";
+import { DEFAULT_FEATURE_CONFIG, DEFAULT_JOIN_MESSAGES, getMemberRole, getOrCreateGroup, updateGroupConfig, upsertMember } from "../db";
 import { getBotState, getPhone } from "./manager";
 
 const ROLE_LEVEL = { member: 1, moderator: 2, admin: 3, owner: 4 } as const;
@@ -9,11 +11,27 @@ const funHits = new Map<string, number[]>();
 const autoHits = new Map<string, number[]>();
 const mentionHits = new Map<string, number[]>();
 const participantEventHits = new Map<string, number>();
+const memberMessageStats = new Map<string, { count: number; firstSeen: number; lastSeen: number }>();
+const floodHits = new Map<string, number[]>();
+const slowmodeHits = new Map<string, number>();
 const funCommands = new Set(["fake", "gigante", "spam", "sorteio", "trava-zap"]);
 const roleCache = new Map<string, { role: Role; expiresAt: number }>();
 const ownerBootstrapped = new Set<string>();
 const ROLE_CACHE_TTL_MS = 15_000;
 export const MEDIA_TIMEOUT_MS = 7_000;
+const LINK_PATTERN = /https?:\/\/\S+|www\.\S+/i;
+const truthChallenges = ["Conte uma coisa que quase ninguém sabe sobre você.", "Qual foi a última coisa que te fez rir?", "Descreva seu dia em três palavras."];
+const dareChallenges = ["Envie um sticker que represente seu humor.", "Escreva uma frase usando apenas letras maiúsculas.", "Mande uma foto do seu papel de parede, se quiser."];
+const quizQuestions = ["Qual comando mostra o status do bot?\nA) !grupo\nB) !status\nC) !id", "Qual prefixo é aceito por padrão?\nA) !\nB) @\nC) $", "Qual comando abre o menu?\nA) !menu\nB) !abrir\nC) !painel"];
+export function getMemberStats(groupJid: string, userJid: string) { return memberMessageStats.get(`${groupJid}:${userJid}`) ?? { count: 0, firstSeen: Date.now(), lastSeen: Date.now() }; }
+async function llmText(instruction: string, input: string) {
+  const response = await Promise.race([
+    invokeLLM({ messages: [{ role: "system", content: "Responda em português brasileiro, de forma curta e segura." }, { role: "user", content: `${instruction}\n\n${input.slice(0, 3000)}` }] }),
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), 8000)),
+  ]);
+  const content = response.choices?.[0]?.message?.content;
+  return typeof content === "string" ? content.slice(0, 3000) : "Não foi possível gerar uma resposta agora.";
+}
 export function applyPrefixAction(current: string[], active: string, action: "add" | "remove" | "set", next: string) {
   if (action === "remove") {
     const list = current.filter((item) => item !== next);
@@ -77,6 +95,11 @@ const menus: Record<string, (prefix: string) => string> = {
     commandLine(prefix, "despedida set texto", "define a mensagem de saída"),
     commandLine(prefix, "despedida on/off", "ativa ou pausa despedidas"),
     commandLine(prefix, "prefixo set ?", "define o prefixo ativo"),
+    commandLine(prefix, "aviso @membro motivo", "registra uma advertência"),
+    commandLine(prefix, "avisos @membro", "consulta advertências"),
+    commandLine(prefix, "resetavisos @membro", "limpa advertências"),
+    commandLine(prefix, "config resumo", "mostra configurações ativas"),
+    commandLine(prefix, "backup config", "gera resumo da configuração"),
     "",
     submenuRule,
     "Requisito: Moderador para silenciar/anunciar/limpar.",
@@ -147,6 +170,11 @@ const menus: Record<string, (prefix: string) => string> = {
     commandLine(prefix, "piada", "envia uma piada rápida"),
     commandLine(prefix, "citacao", "envia uma frase de efeito"),
     commandLine(prefix, "gigante GGZN SYSTEM", "gera texto destacado"),
+    commandLine(prefix, "verdade", "sorteia uma pergunta"),
+    commandLine(prefix, "desafio", "sorteia um desafio seguro"),
+    commandLine(prefix, "dado 2d6", "rola dados configuráveis"),
+    commandLine(prefix, "quiz", "inicia uma pergunta rápida"),
+    commandLine(prefix, "enquete pergunta", "cria uma enquete"),
     "",
     "Limite de uso aplicado por membro em funções de zoeira.",
     "Trava-zap e spam destrutivo nunca são executados pelo sistema.",
@@ -168,6 +196,11 @@ const menus: Record<string, (prefix: string) => string> = {
     commandLine(prefix, "regras", "mostra as regras básicas"),
     commandLine(prefix, "boasvindas status", "mostra o estado das mensagens"),
     commandLine(prefix, "despedida status", "mostra o estado das mensagens"),
+    commandLine(prefix, "perfil @membro", "mostra perfil e estatísticas"),
+    commandLine(prefix, "top mensagens", "mostra ranking da sessão"),
+    commandLine(prefix, "uptime", "mostra tempo de processo"),
+    commandLine(prefix, "latencia", "mede latência local"),
+    commandLine(prefix, "changelog", "mostra mudanças recentes"),
     "",
     "GGZN SYSTEM — Node.js + Baileys.",
     "Sessão, cargos, prefixos e comandos são persistidos por grupo.",
@@ -181,6 +214,10 @@ const menus: Record<string, (prefix: string) => string> = {
     commandLine(prefix, "fechar", "restringe mensagens a administradores"),
     commandLine(prefix, "limpar", "apaga a mensagem citada"),
     commandLine(prefix, "anunciar texto", "publica um anúncio identificado"),
+    commandLine(prefix, "aviso @membro motivo", "registra advertência"),
+    commandLine(prefix, "antiflood on/off", "protege contra excesso de mensagens"),
+    commandLine(prefix, "lock links", "bloqueia links"),
+    commandLine(prefix, "slowmode 10", "define intervalo de comandos"),
     commandLine(prefix, "banir @membro", "remove um membro do grupo"),
     commandLine(prefix, "remover @membro", "remove um membro do grupo"),
     "",
@@ -226,6 +263,10 @@ const menus: Record<string, (prefix: string) => string> = {
     commandLine(prefix, "traduzir pt texto", "traduz texto para português"),
     commandLine(prefix, "traduzir en texto", "traduz texto para inglês"),
     commandLine(prefix, "clima cidade", "consulta dados externos"),
+    commandLine(prefix, "resumir texto", "resume texto com IA"),
+    commandLine(prefix, "corrigir texto", "corrige texto com IA"),
+    commandLine(prefix, "ideia tema", "gera ideias com IA"),
+    commandLine(prefix, "enquete pergunta", "cria uma enquete"),
     commandLine(prefix, "@bot oi", "responde a uma menção direta"),
     commandLine(prefix, "auto listar", "lista auto-respostas e estado de menções"),
     commandLine(prefix, "piada", "resposta automática rápida"),
@@ -244,10 +285,17 @@ const menus: Record<string, (prefix: string) => string> = {
     commandLine(prefix, "desativar comando", "desativa uma função do grupo"),
     commandLine(prefix, "ativar clima", "reativa o comando clima"),
     commandLine(prefix, "desativar spam", "desativa o comando spam"),
+    commandLine(prefix, "antiflood on/off", "ativa ou pausa anti-flood"),
+    commandLine(prefix, "lock/unlock links", "controla links do grupo"),
+    commandLine(prefix, "slowmode segundos", "define intervalo mínimo"),
+    commandLine(prefix, "log on/off", "controla logs administrativos"),
+    commandLine(prefix, "config resumo", "mostra configuração completa"),
     commandLine(prefix, "auto menção on", "ativa respostas para @bot"),
     commandLine(prefix, "auto menção off", "desativa respostas para @bot"),
     commandLine(prefix, "boasvindas teste", "testa a mensagem de entrada"),
     commandLine(prefix, "despedida teste", "testa a mensagem de saída"),
+    commandLine(prefix, "qr texto", "gera QR Code"),
+    commandLine(prefix, "calendario", "mostra data e hora"),
     commandLine(prefix, "menu config", "reabre este submenu"),
     commandLine(prefix, "menu voltar", "volta ao menu principal"),
     commandLine(prefix, "status", "mostra o estado do bot"),
@@ -360,7 +408,23 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
   if (!jid || message.key.fromMe || !message.message) return;
   const text = textOf(message).trim();
   if (!text) return;
-  const group = isGroup(jid) ? await getOrCreateGroup(jid) : { activePrefix: "!", prefixes: ["!", "/", "#", "."], disabledCommands: [] as string[], rules: [], autoReplies: [], joinMessages: DEFAULT_JOIN_MESSAGES, jid, name: "Privado" };
+  const group = isGroup(jid) ? await getOrCreateGroup(jid) : { activePrefix: "!", prefixes: ["!", "/", "#", "."], disabledCommands: [] as string[], rules: [], autoReplies: [], joinMessages: DEFAULT_JOIN_MESSAGES, featureConfig: DEFAULT_FEATURE_CONFIG, jid, name: "Privado" };
+  const sender = senderOf(message);
+  const statsKey = `${jid}:${sender}`;
+  const previousStats = memberMessageStats.get(statsKey) ?? { count: 0, firstSeen: Date.now(), lastSeen: Date.now() };
+  memberMessageStats.set(statsKey, { count: previousStats.count + 1, firstSeen: previousStats.firstSeen, lastSeen: Date.now() });
+  const senderIsOwner = sender.replace(/\D/g, "") === getPhone();
+  if (isGroup(jid) && group.featureConfig.antiFlood && !senderIsOwner) {
+    const now = Date.now();
+    const floodKey = `${jid}:${sender}`;
+    const recent = (floodHits.get(floodKey) ?? []).filter((time) => now - time < 15000);
+    floodHits.set(floodKey, [...recent, now]);
+    if (recent.length >= 6) { await reply(sock, jid, "Anti-flood ativado: aguarde alguns segundos antes de enviar mais comandos."); return; }
+  }
+  if (isGroup(jid) && group.featureConfig.blockLinks && !senderIsOwner && LINK_PATTERN.test(text) && !text.startsWith("!")) {
+    await reply(sock, jid, "Links estão bloqueados neste grupo. Peça a um administrador para liberar.");
+    return;
+  }
   const prefix = group.prefixes.find((candidate) => text.startsWith(candidate));
   if (!prefix) {
     const mentionedText = mentionText(message);
@@ -386,7 +450,13 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
   const [rawCommand, ...args] = text.slice(prefix.length).trim().split(/\s+/);
   const command = rawCommand?.toLowerCase();
   if (!command || group.disabledCommands.includes(command)) return;
-  const sender = senderOf(message);
+  if (isGroup(jid) && group.featureConfig.slowmodeSeconds > 0 && !senderIsOwner && !["menu", "help", "ping", "status", "bot"].includes(command)) {
+    const slowKey = `${jid}:${sender}`;
+    const now = Date.now();
+    const last = slowmodeHits.get(slowKey) ?? 0;
+    if (now - last < group.featureConfig.slowmodeSeconds * 1000) { await reply(sock, jid, `Slowmode ativo: aguarde ${group.featureConfig.slowmodeSeconds}s.`); return; }
+    slowmodeHits.set(slowKey, now);
+  }
   if (isGroup(jid) && sender.replace(/\D/g, "") === getPhone() && !ownerBootstrapped.has(jid)) {
     ownerBootstrapped.add(jid);
     void upsertMember(jid, sender, "owner");
@@ -419,6 +489,26 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
   if (command === "regras") { if (!isGroup(jid) || !(await requireRole(sock, jid, sender, "admin"))) return; const action = args[0]?.toLowerCase(); if (action === "add") { const value = args.slice(1).join(" ").trim(); if (!value) return reply(sock, jid, "Use !regras add texto"); const rules = [...group.rules, { id: String(Date.now()), text: value.slice(0, 240), enabled: true }]; await updateGroupConfig(jid, { rules }); await reply(sock, jid, "Regra adicionada."); return; } if (action === "toggle") { const id = args[1]; const rules = group.rules.map((rule) => rule.id === id ? { ...rule, enabled: !rule.enabled } : rule); await updateGroupConfig(jid, { rules }); await reply(sock, jid, "Estado da regra atualizado."); return; } if (action === "limpar") { await updateGroupConfig(jid, { rules: [] }); await reply(sock, jid, "Regras limpas."); return; } await reply(sock, jid, "Use !regras add texto | !regras toggle ID | !regras limpar"); return; }
   if (command === "auto") { if (!isGroup(jid) || !(await requireRole(sock, jid, sender, "admin"))) return; const action = args[0]?.toLowerCase(); if (["menção", "mencao", "mention"].includes(action ?? "")) { const value = args[1]?.toLowerCase(); if (!["on", "off"].includes(value ?? "")) return reply(sock, jid, "Use !auto menção on ou !auto menção off"); const disabled = new Set(group.disabledCommands); value === "off" ? disabled.add("__mention__") : disabled.delete("__mention__"); await updateGroupConfig(jid, { disabledCommands: Array.from(disabled) }); await reply(sock, jid, `Auto-resposta por @bot: ${value === "on" ? "ativada" : "desativada"}.`); return; } if (action === "add") { const [trigger, response] = args.slice(1).join(" ").split("=>").map((part) => part?.trim()); if (!trigger || !response) return reply(sock, jid, "Use !auto add gatilho => resposta"); const autoReplies = [...group.autoReplies.filter((item) => item.trigger !== trigger), { trigger: trigger.slice(0, 40).toLowerCase(), response: response.slice(0, 500), enabled: true }]; await updateGroupConfig(jid, { autoReplies }); await reply(sock, jid, "Auto-resposta adicionada."); return; } if (action === "remover") { const trigger = args.slice(1).join(" ").trim().toLowerCase(); await updateGroupConfig(jid, { autoReplies: group.autoReplies.filter((item) => item.trigger !== trigger) }); await reply(sock, jid, "Auto-resposta removida."); return; } if (action === "listar") { const mentionStatus = group.disabledCommands.includes("__mention__") ? "OFF" : "ON"; await reply(sock, jid, `MENÇÕES @BOT: ${mentionStatus}\n${group.autoReplies.length ? group.autoReplies.map((item) => `${item.enabled ? "ON" : "OFF"} | ${item.trigger}`).join("\n") : "Nenhuma auto-resposta cadastrada."}`); return; } await reply(sock, jid, "Use !auto add gatilho => resposta | !auto listar | !auto remover gatilho | !auto menção on/off"); return; }
   if (command === "grupo") { await reply(sock, jid, `Grupo: ${group.name}\nPrefixo: ${group.activePrefix}\nComandos bloqueados: ${group.disabledCommands.length}`); return; }
+  if (command === "perfil" || command === "consulta") { const target = mentioned(message) ?? sender; const stats = getMemberStats(jid, target); const warnings = group.featureConfig.warnings[target] ?? []; await reply(sock, jid, `PERFIL GGZN\nUsuário: @${target.split("@")[0]}\nMensagens nesta sessão: ${stats.count}\nAdvertências: ${warnings.length}\nCargo: ${target === getPhone() ? "Dono" : "Membro"}`); return; }
+  if (command === "top" && args[0]?.toLowerCase() === "mensagens") { const rows = Array.from(memberMessageStats.entries()).filter(([key]) => key.startsWith(`${jid}:`)).sort((a, b) => b[1].count - a[1].count).slice(0, 5); await reply(sock, jid, rows.length ? `TOP MENSAGENS\n${rows.map(([key, value], index) => `${index + 1}. @${key.split(":")[1].split("@")[0]} — ${value.count}`).join("\n")}` : "Ainda não há estatísticas."); return; }
+  if (command === "aviso") { if (!isGroup(jid) || !(await requireRole(sock, jid, sender, "moderator"))) return; const target = mentioned(message); if (!target) return reply(sock, jid, "Mencione o membro: !aviso @membro motivo"); const reason = args.filter((arg) => !arg.startsWith("@" )).join(" ").trim().slice(0, 180) || "Sem motivo informado"; const warnings = { ...group.featureConfig.warnings, [target]: [...(group.featureConfig.warnings[target] ?? []), reason] }; await updateGroupConfig(jid, { featureConfig: { ...group.featureConfig, warnings } }); await reply(sock, jid, `Advertência registrada para @${target.split("@")[0]}.`); return; }
+  if (command === "avisos") { const target = mentioned(message) ?? sender; const warnings = group.featureConfig.warnings[target] ?? []; await reply(sock, jid, warnings.length ? `ADVERTÊNCIAS\n${warnings.map((item, index) => `${index + 1}. ${item}`).join("\n")}` : "Nenhuma advertência registrada."); return; }
+  if (command === "resetavisos") { if (!isGroup(jid) || !(await requireRole(sock, jid, sender, "admin"))) return; const target = mentioned(message); if (!target) return reply(sock, jid, "Mencione o membro para limpar os avisos."); const warnings = { ...group.featureConfig.warnings }; delete warnings[target]; await updateGroupConfig(jid, { featureConfig: { ...group.featureConfig, warnings } }); await reply(sock, jid, "Advertências removidas."); return; }
+  if (["slowmode", "antiflood", "lock", "unlock", "log"].includes(command)) { if (!isGroup(jid) || !(await requireRole(sock, jid, sender, "admin"))) return; const featureConfig = { ...group.featureConfig }; if (command === "slowmode") { const seconds = Math.max(0, Math.min(300, Number(args[0] ?? 0) || 0)); featureConfig.slowmodeSeconds = seconds; await updateGroupConfig(jid, { featureConfig }); await reply(sock, jid, `Slowmode: ${seconds ? `${seconds}s` : "desativado"}.`); return; } if (command === "antiflood") { featureConfig.antiFlood = args[0]?.toLowerCase() === "on"; await updateGroupConfig(jid, { featureConfig }); await reply(sock, jid, `Anti-flood: ${featureConfig.antiFlood ? "ON" : "OFF"}.`); return; } if (command === "lock" || command === "unlock") { if (args[0]?.toLowerCase() !== "links") return reply(sock, jid, "Use !lock links ou !unlock links"); featureConfig.blockLinks = command === "lock"; await updateGroupConfig(jid, { featureConfig }); await reply(sock, jid, `Links: ${featureConfig.blockLinks ? "bloqueados" : "liberados"}.`); return; } featureConfig.logs = args[0]?.toLowerCase() === "on"; await updateGroupConfig(jid, { featureConfig }); await reply(sock, jid, `Logs administrativos: ${featureConfig.logs ? "ON" : "OFF"}.`); return; }
+  if (command === "config" && args[0]?.toLowerCase() === "resumo") { await reply(sock, jid, `CONFIGURAÇÃO\nPrefixo: ${group.activePrefix}\nAnti-flood: ${group.featureConfig.antiFlood ? "ON" : "OFF"}\nLinks: ${group.featureConfig.blockLinks ? "BLOQUEADOS" : "LIBERADOS"}\nSlowmode: ${group.featureConfig.slowmodeSeconds || "OFF"}\nBoas-vindas: ${group.joinMessages.welcome.enabled ? "ON" : "OFF"}\nDespedida: ${group.joinMessages.farewell.enabled ? "ON" : "OFF"}`); return; }
+  if (command === "backup" && args[0]?.toLowerCase() === "config") { if (!isGroup(jid) || !(await requireRole(sock, jid, sender, "admin"))) return; await reply(sock, jid, `BACKUP DE CONFIGURAÇÃO\n${JSON.stringify({ prefix: group.activePrefix, features: group.featureConfig, joinMessages: group.joinMessages }).slice(0, 3500)}`); return; }
+  if (command === "calendario") { await reply(sock, jid, new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(new Date())); return; }
+  if (command === "qr") { const value = args.join(" ").trim(); if (!value) return reply(sock, jid, "Use !qr texto ou !qr link"); const qr = await QRCode.toBuffer(value.slice(0, 1000), { width: 420, margin: 2 }); await sock.sendMessage(jid, { image: qr, caption: "QR Code gerado pelo GGZN SYSTEM." }); return; }
+  if (command === "encurtar") { const value = args[0]; if (!value || !LINK_PATTERN.test(value)) return reply(sock, jid, "Envie um link válido."); await reply(sock, jid, `Link recebido e validado: ${value.slice(0, 500)}`); return; }
+  if (command === "dado") { const notation = args[0] ?? "1d6"; const match = notation.match(/^(\\d{1,2})d(\\d{1,4})$/i); if (!match) return reply(sock, jid, "Use !dado 2d6"); const amount = Math.min(Number(match[1]), 20); const sides = Math.min(Number(match[2]), 1000); const rolls = Array.from({ length: amount }, () => Math.floor(Math.random() * sides) + 1); await reply(sock, jid, `DADO ${notation}: ${rolls.join(" + ")} = ${rolls.reduce((sum, value) => sum + value, 0)}`); return; }
+  if (command === "verdade" || command === "desafio") { const list = command === "verdade" ? truthChallenges : dareChallenges; await reply(sock, jid, `${command.toUpperCase()}: ${list[Math.floor(Math.random() * list.length)]}`); return; }
+  if (command === "quiz") { await reply(sock, jid, quizQuestions[Math.floor(Math.random() * quizQuestions.length)]); return; }
+  if (command === "enquete") { const question = args.join(" ").trim(); if (!question) return reply(sock, jid, "Use !enquete pergunta"); await sock.sendMessage(jid, { poll: { name: question.slice(0, 200), values: ["Sim", "Não", "Talvez"], selectableCount: 1 } }); return; }
+  if (["resumir", "corrigir", "ideia"].includes(command)) { const input = args.join(" ").trim(); if (!input) return reply(sock, jid, `Use !${command} texto`); try { const instruction = command === "resumir" ? "Resuma o texto em até cinco linhas." : command === "corrigir" ? "Corrija a ortografia e mantenha o sentido." : "Gere cinco ideias práticas sobre o tema."; await replyAnimated(sock, jid, await llmText(instruction, input)); } catch { await reply(sock, jid, "A função de IA está temporariamente indisponível. Tente novamente em alguns segundos."); } return; }
+  if (command === "uptime") { await reply(sock, jid, `Uptime do processo: ${Math.floor(process.uptime())}s`); return; }
+  if (command === "latencia") { const startedAt = performance.now(); await reply(sock, jid, `Latência local: ${Math.round(performance.now() - startedAt)}ms`); return; }
+  if (command === "manutencao" && args[0]?.toLowerCase() === "status") { const bot = getBotState(); await reply(sock, jid, `Manutenção: ${bot.status === "connected" ? "não detectada" : "transporte em atenção"}.`); return; }
+  if (command === "changelog") { await reply(sock, jid, "GGZN SYSTEM CHANGELOG\n• Menções @bot\n• Boas-vindas e despedidas\n• Proteções anti-flood e links\n• Jogos, IA e utilidades"); return; }
   if (["boasvindas", "despedida"].includes(command)) {
     if (!isGroup(jid) || !(await requireRole(sock, jid, sender, "admin"))) return;
     const kind = command === "boasvindas" ? "welcome" : "farewell";

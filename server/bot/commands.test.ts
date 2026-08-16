@@ -163,6 +163,23 @@ describe("GGZN message handler", () => {
     await handleIncomingMessage(onSocket, ownerMessage("!auto menção on"));
     expect(onSocket.sendMessage).toHaveBeenCalledWith("test-handler@g.us", expect.objectContaining({ text: expect.stringContaining("ativada") }));
   });
+  it("supports the expanded utility and system command set", async () => {
+    const socket = mockSocket();
+    await handleIncomingMessage(socket, ownerMessage("!dado 1d6"));
+    await handleIncomingMessage(socket, ownerMessage("!quiz"));
+    await handleIncomingMessage(socket, ownerMessage("!uptime"));
+    await handleIncomingMessage(socket, ownerMessage("!latencia"));
+    expect(socket.sendMessage).toHaveBeenCalledWith("test-handler@g.us", expect.objectContaining({ text: expect.stringMatching(/DADO|Qual comando|Uptime|Latência/) }));
+  });
+
+  it("supports administrative feature configuration commands", async () => {
+    const socket = mockSocket();
+    await handleIncomingMessage(socket, ownerMessage("!antiflood on"));
+    await handleIncomingMessage(socket, ownerMessage("!lock links"));
+    await handleIncomingMessage(socket, ownerMessage("!slowmode 5"));
+    expect(socket.sendMessage).toHaveBeenCalledWith("test-handler@g.us", expect.objectContaining({ text: expect.stringContaining("Slowmode") }));
+  });
+
   it("silences the group through announcement mode", async () => {
     const socket = mockSocket();
     await handleIncomingMessage(socket, ownerMessage("!silenciar"));

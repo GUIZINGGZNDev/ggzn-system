@@ -1,0 +1,1 @@
+ALTER TABLE `bot_groups` ADD `featureConfig` varchar(16383) DEFAULT '{}' NOT NULL;

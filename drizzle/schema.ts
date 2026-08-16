@@ -22,6 +22,7 @@ export const botGroups = mysqlTable("bot_groups", {
   rules: varchar("rules", { length: 16383 }).notNull().default("[]"),
   autoReplies: varchar("autoReplies", { length: 16383 }).notNull().default("[]"),
   joinMessages: varchar("joinMessages", { length: 8191 }).notNull().default("{}"),
+  featureConfig: varchar("featureConfig", { length: 16383 }).notNull().default("{}"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -56,6 +57,13 @@ export type AutoReply = { trigger: string; response: string; enabled: boolean };
 export type JoinMessages = {
   welcome: { enabled: boolean; text: string };
   farewell: { enabled: boolean; text: string };
+};
+export type FeatureConfig = {
+  slowmodeSeconds: number;
+  antiFlood: boolean;
+  blockLinks: boolean;
+  logs: boolean;
+  warnings: Record<string, string[]>;
 };
 export type BotMember = typeof botMembers.$inferSelect;
 export type BotSession = typeof botSessions.$inferSelect;

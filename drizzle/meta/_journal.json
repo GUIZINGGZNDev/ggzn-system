@@ -43,6 +43,13 @@
       "when": 1786897932511,
       "tag": "0005_amusing_black_tom",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1786898215371,
+      "tag": "0006_goofy_mentor",
+      "breakpoints": true
     }
   ]
 }
