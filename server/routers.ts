@@ -1,7 +1,9 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
+import { adminProcedure, publicProcedure, router } from "./_core/trpc";
+import { listBotGroups, getOrCreateGroup, updateGroupConfig } from "./db";
+import { z } from "zod";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -15,6 +17,16 @@ export const appRouter = router({
         success: true,
       } as const;
     }),
+  }),
+
+  botAdmin: router({
+    listGroups: adminProcedure.query(() => listBotGroups()),
+    getGroup: adminProcedure.input(z.object({ jid: z.string().min(1).max(191) })).query(({ input }) => getOrCreateGroup(input.jid)),
+    updateGroup: adminProcedure.input(z.object({
+      jid: z.string().min(1).max(191),
+      rules: z.array(z.object({ id: z.string(), text: z.string().min(1).max(240), enabled: z.boolean() })).max(100),
+      autoReplies: z.array(z.object({ trigger: z.string().min(1).max(40), response: z.string().min(1).max(500), enabled: z.boolean() })).max(100),
+    })).mutation(({ input }) => updateGroupConfig(input.jid, { rules: input.rules, autoReplies: input.autoReplies }).then(() => ({ success: true }))),
   }),
 
   // TODO: add feature routers here, e.g.

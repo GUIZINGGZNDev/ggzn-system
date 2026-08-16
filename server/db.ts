@@ -93,7 +93,7 @@ export async function getOrCreateGroup(jid: string, name = "Grupo sem nome"): Pr
       activePrefix: row?.activePrefix ?? "!",
       prefixes: row ? parseJson<string[]>(row.prefixes, ["!", "/", "#", "."]) : ["!", "/", "#", "."],
       disabledCommands: row ? parseJson<string[]>(row.disabledCommands, []) : [],
-      rules: row ? parseJson<BotRule[]>(row.rules, []) : [],
+      rules: row ? parseJson<Array<Partial<BotRule>>>(row.rules, []).map((rule) => ({ id: rule.id ?? String(Date.now()), text: rule.text ?? "", enabled: rule.enabled !== false })) : [],
       autoReplies: row ? parseJson<AutoReply[]>(row.autoReplies, []) : [],
     };
     groupCache.set(jid, { value, expiresAt: Date.now() + GROUP_CACHE_TTL_MS });
@@ -105,6 +105,21 @@ export async function getOrCreateGroup(jid: string, name = "Grupo sem nome"): Pr
   } finally {
     pendingGroupLoads.delete(jid);
   }
+}
+
+export async function listBotGroups(): Promise<GroupConfig[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select().from(botGroups);
+  return rows.map((row) => ({
+    jid: row.jid,
+    name: row.name,
+    activePrefix: row.activePrefix,
+    prefixes: parseJson<string[]>(row.prefixes, ["!", "/", "#", "."]),
+    disabledCommands: parseJson<string[]>(row.disabledCommands, []),
+    rules: parseJson<Array<Partial<BotRule>>>(row.rules, []).map((rule) => ({ id: rule.id ?? String(Date.now()), text: rule.text ?? "", enabled: rule.enabled !== false })),
+    autoReplies: parseJson<AutoReply[]>(row.autoReplies, []),
+  }));
 }
 
 export async function updateGroupConfig(jid: string, patch: Partial<{ name: string; activePrefix: string; prefixes: string[]; disabledCommands: string[]; rules: BotRule[]; autoReplies: AutoReply[] }>) {

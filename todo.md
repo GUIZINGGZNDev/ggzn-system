@@ -241,3 +241,15 @@
 - [x] Persistir regras e configurações de auto-resposta por grupo
 - [x] Implementar auto-respostas configuráveis com limite antiabuso
 - [x] Atualizar schema/migração, testes, build e publicação
+
+- [x] Definir contrato seguro para administração web por grupo
+- [x] Implementar editar/remover regras e ativar/desativar regras individuais
+- [x] Implementar editar/remover auto-respostas e toggle individual
+- [x] Criar painel web privado com autenticação e seleção de grupo
+- [x] Adicionar testes de autorização, persistência, UI e publicar
+
+- [x] Adicionar `enabled` às regras e implementar toggle individual no bot e painel
+- [x] Permitir editar completamente auto-respostas, incluindo gatilho
+- [x] Testar autorização admin e persistência dos routers botAdmin
+- [x] Adicionar teste de UI do painel `/admin`
+- [x] Salvar checkpoint final após essas validações
