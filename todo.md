@@ -67,3 +67,11 @@
 
 - [x] Testar o comando sticker com timeout no download de mídia
 - [x] Testar o comando sticker com falha/timeout na conversão WebP
+
+- [x] Trocar “Pareamento” por “Converse com o bot” e “Adicione no grupo” em títulos, CTAs e estados
+- [x] Manter o código de conexão gerado dinamicamente, sem salvar código temporário fixo
+- [x] Validar a interface e o endpoint após a mudança de nomenclatura
+
+- [x] Validar no navegador o CTA “Converse com o bot / adicionar ao grupo” após a renomeação
+- [x] Testar e registrar a resposta de /api/bot/pairing após a mudança: HTTP 200 com QR ativo
+- [x] Revisar o preview final: nenhuma referência pública a “Pareamento” ou “Parear”
