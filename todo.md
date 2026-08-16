@@ -333,3 +333,10 @@
 - [x] Adicionar testes de seleção de foto, ordem de envio e ausência de presença
 - [x] Validar TypeScript, Vitest, build e publicar a nova versão
 
+
+- [x] Criar fotos exclusivas para Zoeira, Info, Moderação, Site, Textos, Cargos, Membros e Configuração
+- [x] Armazenar os novos assets no storage do projeto
+- [x] Atualizar o mapa de fotos para cada categoria e submenu
+- [x] Testar ordem de envio, seleção correta e fallback textual
+- [x] Validar TypeScript, Vitest, build e publicar a versão completa
+
