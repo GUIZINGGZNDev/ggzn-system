@@ -51,8 +51,10 @@ describe("GGZN command permissions", () => {
 
   it("covers the long main menu and every category with dynamic prefixes", () => {
     const main = getMainMenu("$");
-    expect(main).toContain("$menu 1  —  ADM / controle do grupo");
-    expect(main).toContain("$menu 6  —  Config / prefixos");
+    expect(main).toContain("│    MENU PRINCIPAL  │");
+    expect(main).toContain("│ 01  ADM             │");
+    expect(main).toContain("│ 06  CONFIGURAÇÕES   │");
+    expect(main).toContain("Exemplo: $menu 1");
     expect(main.split("\\n").length).toBeGreaterThan(12);
     expect(getMenu("cargos", "$")).toContain("$promover moderador @membro");
     expect(getMenu("zoeira", "$")).toContain("$trava-zap — retorna aviso e permanece bloqueado");
@@ -62,8 +64,8 @@ describe("GGZN command permissions", () => {
 
   it("supports the Premium numeric menu navigation", () => {
     const main = getMainMenu("!");
-    expect(main).toContain("!menu 1  —  ADM / controle do grupo");
-    expect(main).toContain("!menu 6  —  Config / prefixos");
+    expect(main).toContain("│ 01  ADM             │");
+    expect(main).toContain("│ 06  CONFIGURAÇÕES   │");
     expect(MENU_NUMBER_MAP["1"]).toBe("adm");
     expect(MENU_NUMBER_MAP["4"]).toBe("zoeira");
     expect(getMenu("adm", "!")).toContain("MENU ADM");

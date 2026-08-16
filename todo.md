@@ -198,3 +198,7 @@
 - [x] Implementar `!menu 1` até `!menu 6` mantendo `!menu adm` e equivalentes
 - [x] Atualizar textos e testes da navegação numerada do menu
 - [x] Validar build e publicar o novo fluxo Premium
+
+- [x] Remover repetições e reorganizar o painel principal em blocos visuais curtos
+- [x] Alinhar categorias numeradas e separar instruções do catálogo
+- [x] Atualizar testes de formatação e publicar a correção
