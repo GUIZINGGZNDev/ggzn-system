@@ -402,3 +402,9 @@
 - [x] Integrar e validar os novos assets sem reativar o bot
 - [x] Executar testes Vitest, TypeScript, build e validação visual
 - [x] Publicar a versão revisada mantendo o bot pausado
+
+- [x] Adicionar bloco superior de Gerenciamento do Bot no site
+- [x] Integrar controles protegidos de pausar e ativar no painel
+- [x] Remover Site Oficial da navegação e dos menus do WhatsApp
+- [x] Atualizar testes de interface, menus e endpoints
+- [x] Validar build, estado pausado e publicar a alteração

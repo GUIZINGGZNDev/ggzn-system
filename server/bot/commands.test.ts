@@ -79,11 +79,10 @@ describe("GGZN command permissions", () => {
       "│ 02 • ZOEIRA                  │",
       "│ 03 • INFO                    │",
       "│ 04 • MODERAÇÃO               │",
-      "│ 05 • SITE OFICIAL            │",
-      "│ 06 • TEXTOS                  │",
-      "│ 07 • IA / AUTO-RESPONDER     │",
-      "│ 08 • PERFORMANCE / RÁPIDOS   │",
-      "│ 09 • ZOEIRA 2 / INTERAÇÃO    │",
+      "│ 05 • TEXTOS                  │",
+      "│ 06 • IA / AUTO-RESPONDER     │",
+      "│ 07 • PERFORMANCE / RÁPIDOS   │",
+      "│ 08 • ZOEIRA 2 / INTERAÇÃO    │",
       "└──────────────────────────────┘", 
       "",
       "┌─ ACESSOS ────────────────────┐",
@@ -91,16 +90,14 @@ describe("GGZN command permissions", () => {
       "│ $menu 2  •  $menu zoeira │",
       "│ $menu 3  •  $menu info  │",
       "│ $menu 4  •  $menu mod   │",
-      "│ $menu 5  •  $menu site  │",
-      "│ $menu 6  •  $menu textos│",
-      "│ $menu 7  •  $menu ia    │",
-      "│ $menu 8  •  $menu performance │",
-      "│ $menu 9  •  $menu zoeira2 │",
+      "│ $menu 5  •  $menu textos│",
+      "│ $menu 6  •  $menu ia    │",
+      "│ $menu 7  •  $menu performance │",
+      "│ $menu 8  •  $menu zoeira2 │",
       "└──────────────────────────────┘",
     ].join("\n");
     expect(getMainMenu("$")).toBe(expected);
-    expect(getMenu("mod", "$")).toContain("$silenciar");
-    expect(getMenu("site", "$")).toContain("Site oficial:");
+    expect(getMenu("site", "$")).toBeUndefined();
     expect(getMenu("textos", "$")).toContain("$stext frase");
     expect(getMenu("ia", "$")).toContain("$traduzir pt texto");
     expect(getMenu("performance", "$")).toContain("$saude");
@@ -110,13 +107,16 @@ describe("GGZN command permissions", () => {
     expect(getMenu("mod1", "$")).not.toContain("\\n");
   });
 
-  it("supports the seven GGZN CORPORATION numeric menu options", () => {
+  it("supports the eight GGZN CORPORATION numeric menu options", () => {
     const main = getMainMenu("!");
     expect(main).toContain("│ 04 • MODERAÇÃO               │");
-    expect(main).toContain("│ !menu 5  •  !menu site  │");
+    expect(main).toContain("│ !menu 5  •  !menu textos│");
+    expect(main).not.toContain("SITE OFICIAL");
+    expect(main).not.toContain("!menu site");
     expect(MENU_NUMBER_MAP["1"]).toBe("adm");
     expect(MENU_NUMBER_MAP["2"]).toBe("zoeira");
-    expect(MENU_NUMBER_MAP["7"]).toBe("ia");
+    expect(MENU_NUMBER_MAP["6"]).toBe("ia");
+    expect(MENU_NUMBER_MAP["8"]).toBe("zoeira2");
     expect(getMenu("adm", "!")).toContain("MENU ADM");
     expect(getMenu("zoeira", "!")).toContain("MENU ZOEIRA");
   });

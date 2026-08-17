@@ -56,7 +56,7 @@ type Role = keyof typeof ROLE_LEVEL;
 
 const commandLine = (prefix: string, command: string, _description: string) => `${prefix}${command}`;
 const submenuRule = "────────────────────────────────";
-export const MENU_NUMBER_MAP = { "1": "adm", "2": "zoeira", "3": "info", "4": "mod", "5": "site", "6": "textos", "7": "ia", "8": "performance", "9": "zoeira2" } as const;
+export const MENU_NUMBER_MAP = { "1": "adm", "2": "zoeira", "3": "info", "4": "mod", "5": "textos", "6": "ia", "7": "performance", "8": "zoeira2" } as const;
 const getMenuSection = (value?: string) => value ? MENU_NUMBER_MAP[value as keyof typeof MENU_NUMBER_MAP] ?? value : undefined;
 export const getMainMenu = (prefix: string) => [
   "╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮",
@@ -70,11 +70,10 @@ export const getMainMenu = (prefix: string) => [
   "│ 02 • ZOEIRA                  │",
   "│ 03 • INFO                    │",
   "│ 04 • MODERAÇÃO               │",
-  "│ 05 • SITE OFICIAL            │",
-  "│ 06 • TEXTOS                  │",
-  "│ 07 • IA / AUTO-RESPONDER     │",
-  "│ 08 • PERFORMANCE / RÁPIDOS   │",
-  "│ 09 • ZOEIRA 2 / INTERAÇÃO    │",
+  "│ 05 • TEXTOS                  │",
+  "│ 06 • IA / AUTO-RESPONDER     │",
+  "│ 07 • PERFORMANCE / RÁPIDOS   │",
+  "│ 08 • ZOEIRA 2 / INTERAÇÃO    │",
   "└──────────────────────────────┘",
   "",
   "┌─ ACESSOS ────────────────────┐",
@@ -82,11 +81,10 @@ export const getMainMenu = (prefix: string) => [
   `│ ${prefix}menu 2  •  ${prefix}menu zoeira │`,
   `│ ${prefix}menu 3  •  ${prefix}menu info  │`,
   `│ ${prefix}menu 4  •  ${prefix}menu mod   │`,
-  `│ ${prefix}menu 5  •  ${prefix}menu site  │`,
-  `│ ${prefix}menu 6  •  ${prefix}menu textos│`,
-  `│ ${prefix}menu 7  •  ${prefix}menu ia    │`,
-  `│ ${prefix}menu 8  •  ${prefix}menu performance │`,
-  `│ ${prefix}menu 9  •  ${prefix}menu zoeira2 │`,
+  `│ ${prefix}menu 5  •  ${prefix}menu textos│`,
+  `│ ${prefix}menu 6  •  ${prefix}menu ia    │`,
+  `│ ${prefix}menu 7  •  ${prefix}menu performance │`,
+  `│ ${prefix}menu 8  •  ${prefix}menu zoeira2 │`,
   "└──────────────────────────────┘",
 ].join("\n");
 const menus: Record<string, (prefix: string) => string> = {
@@ -282,16 +280,6 @@ const menus: Record<string, (prefix: string) => string> = {
     commandLine(prefix, "regras", "mostra regras do grupo"),
     commandLine(prefix, "menu voltar", "volta ao menu principal"),
   ].join("\n"),
-  site: (prefix) => [
-    "*GGZN CORPORATION / SITE OFC*",
-    submenuRule,
-    "",
-    "Site oficial:",
-    "https://ggznbot-g89bqgka.manus.space",
-    "",
-    commandLine(prefix, "menu", "volta ao painel principal"),
-    "A conexão do bot permanece protegida e não é exibida publicamente.",
-  ].join("\n"),
   textos: (prefix) => [
     "*GGZN CORPORATION / TEXTOS*",
     submenuRule,
@@ -407,7 +395,6 @@ const MENU_IMAGE_URLS: Record<string, string> = {
   info: "/manus-storage/ggzn-menu-info-v2_09809cc7.jpg",
   mod: "/manus-storage/ggzn-menu-mod-v2_a7f4c2a5.jpg",
   mod1: "/manus-storage/ggzn-menu-mod-v2_a7f4c2a5.jpg",
-  site: "/manus-storage/ggzn-menu-site-v2_09cf645b.jpg",
   textos: "/manus-storage/ggzn-menu-textos-v2_6825b267.jpg",
   ia: "/manus-storage/ggzn-menu-ia-v2_1dd62a6d.jpg",
   config: "/manus-storage/ggzn-menu-config-v2_ea4348df.jpg",

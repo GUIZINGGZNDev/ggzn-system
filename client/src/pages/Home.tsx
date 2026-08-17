@@ -88,8 +88,9 @@ export default function Home() {
             <a href="#comandos" className="whitespace-nowrap underline decoration-2 underline-offset-4">Comandos</a>
             <a href="#converse" className="whitespace-nowrap">Conexão</a>
             <a href="#arquitetura" className="hidden whitespace-nowrap sm:inline">Arquitetura</a>
+            <a href="/admin" className="whitespace-nowrap border-2 border-black bg-lime-300 px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] transition-colors hover:bg-black hover:text-white" aria-label="Abrir gerenciamento do bot">Gerenciamento do bot</a>
           </nav>
-          <a className="hidden shrink-0 text-xs font-black uppercase underline decoration-2 underline-offset-4 lg:inline" href="#converse">Status ao vivo <ArrowDownRight className="inline h-4 w-4" /></a>
+          <a className="hidden shrink-0 text-xs font-black uppercase underline decoration-2 underline-offset-4 lg:inline" href="/admin">Gerenciar <ArrowDownRight className="inline h-4 w-4" /></a>
         </div>
       </header>
 
