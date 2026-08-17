@@ -367,3 +367,11 @@
 - [x] Atualizar testes de legenda, ordem e ausência de mensagem duplicada
 - [x] Validar TypeScript, Vitest, build e publicar a alteração
 
+
+- [x] Diagnosticar falha atual do processamento de sticker
+- [x] Corrigir `!sticker` e adicionar alias `!s`
+- [x] Ampliar prefixos padrão mantendo `!`, `/`, `#` e `.`
+- [x] Atualizar menus, ajuda e comando de listagem de prefixos
+- [x] Adicionar testes de mídia, alias, prefixos e regressões
+- [x] Validar TypeScript, Vitest, build e publicar a correção
+

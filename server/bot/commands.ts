@@ -134,7 +134,8 @@ const menus: Record<string, (prefix: string) => string> = {
     "*MENU MEMBROS — UTILIDADES*",
     submenuRule,
     "",
-    commandLine(prefix, "sticker", "converte a imagem enviada em figurinha"),
+    commandLine(prefix, "sticker", "converte ou cita uma imagem em figurinha"),
+    commandLine(prefix, "s", "atalho rápido para sticker"),
     commandLine(prefix, "stext frase", "cria uma figurinha com texto"),
     commandLine(prefix, "traduzir pt texto", "traduz o texto para português"),
     commandLine(prefix, "traduzir en texto", "traduz o texto para inglês"),
@@ -146,6 +147,7 @@ const menus: Record<string, (prefix: string) => string> = {
     commandLine(prefix, "menu", "abre o menu completo"),
     commandLine(prefix, "help membros", "abre este submenu"),
     commandLine(prefix, "prefixos", "mostra os prefixos aceitos"),
+    commandLine(prefix, "s", "atalho rápido para sticker"),
     commandLine(prefix, "ping", "responde com o tempo do bot"),
     commandLine(prefix, "hora", "mostra o horário atual"),
     commandLine(prefix, "data", "mostra a data atual"),
@@ -328,7 +330,8 @@ const menus: Record<string, (prefix: string) => string> = {
     commandLine(prefix, "status", "mostra o estado do bot"),
     "",
     "Configurações exigem cargo de Administrador.",
-    "Prefixos disponíveis por padrão: ! / # .",
+    "Prefixos disponíveis por padrão: ! / # . ~ + >",
+    "Sticker rápido: envie/cite uma imagem com !s.",
   ].join("\n"),
 };
 
@@ -459,7 +462,7 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
   if (!jid || message.key.fromMe || !message.message) return;
   const text = textOf(message).trim();
   if (!text) return;
-  const group = isGroup(jid) ? await getOrCreateGroup(jid) : { activePrefix: "!", prefixes: ["!", "/", "#", "."], disabledCommands: [] as string[], rules: [], autoReplies: [], joinMessages: DEFAULT_JOIN_MESSAGES, featureConfig: DEFAULT_FEATURE_CONFIG, jid, name: "Privado" };
+  const group = isGroup(jid) ? await getOrCreateGroup(jid) : { activePrefix: "!", prefixes: ["!", "/", "#", ".", "~", "+", ">"], disabledCommands: [] as string[], rules: [], autoReplies: [], joinMessages: DEFAULT_JOIN_MESSAGES, featureConfig: DEFAULT_FEATURE_CONFIG, jid, name: "Privado" };
   const sender = senderOf(message);
   const senderIsOwner = sender.replace(/\D/g, "") === getPhone();
   if (isGroup(jid) && group.featureConfig.antiFlood && !senderIsOwner) {
@@ -496,8 +499,9 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
     return;
   }
   const [rawCommand, ...args] = text.slice(prefix.length).trim().split(/\s+/);
-  const command = rawCommand?.toLowerCase();
-  if (!command || group.disabledCommands.includes(command)) return;
+  const parsedCommand = rawCommand?.toLowerCase();
+  const command = parsedCommand === "s" ? "sticker" : parsedCommand;
+  if (!command || group.disabledCommands.includes(command) || (parsedCommand === "s" && group.disabledCommands.includes("sticker"))) return;
   const fastCommands = new Set(["ping", "bot", "status", "versao", "saude", "memoria", "cache", "atalhos", "uptime", "latencia"]);
   if (!fastCommands.has(command)) {
     const statsKey = `${jid}:${sender}`;
@@ -665,9 +669,15 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
     return;
   }
   if (command === "anunciar") { if (await requireRole(sock, jid, sender, "moderator")) await reply(sock, jid, `*ANÚNCIO*\n${args.join(" ") || "Sem texto informado."}`); return; }
-  if (command === "sticker" && message.message?.imageMessage) {
+  if (command === "sticker") {
+    const quoted = message.message?.extendedTextMessage?.contextInfo?.quotedMessage;
+    const mediaMessage = message.message?.imageMessage ? message : quoted?.imageMessage ? { ...message, message: quoted } as WAMessage : undefined;
+    if (!mediaMessage) {
+      await reply(sock, jid, "Envie ou cite uma imagem usando !sticker ou !s.");
+      return;
+    }
     const mediaStartedAt = performance.now();
-    const media = await withTimeout(downloadMediaMessage(message, "buffer", {}), MEDIA_TIMEOUT_MS);
+    const media = await withTimeout(downloadMediaMessage(mediaMessage, "buffer", {}), MEDIA_TIMEOUT_MS);
     console.info(`[GGZN][external][sticker-download] ${Math.round(performance.now() - mediaStartedAt)}ms`);
     const conversionStartedAt = performance.now();
     const sticker = await withTimeout(sharp(media as Buffer).resize(512, 512, { fit: "contain", background: "#ffffff" }).webp({ quality: 82 }).toBuffer(), MEDIA_TIMEOUT_MS);

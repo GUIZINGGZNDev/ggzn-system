@@ -88,18 +88,18 @@ export async function getOrCreateGroup(jid: string, name = "Grupo sem nome"): Pr
   const load = (async () => {
     const db = await getDb();
     if (!db) {
-      const fallback = { jid, name, activePrefix: "!", prefixes: ["!", "/", "#", "."], disabledCommands: [], rules: [] as BotRule[], autoReplies: [] as AutoReply[], joinMessages: DEFAULT_JOIN_MESSAGES, featureConfig: DEFAULT_FEATURE_CONFIG };
+      const fallback = { jid, name, activePrefix: "!", prefixes: ["!", "/", "#", ".", "~", "+", ">"], disabledCommands: [], rules: [] as BotRule[], autoReplies: [] as AutoReply[], joinMessages: DEFAULT_JOIN_MESSAGES, featureConfig: DEFAULT_FEATURE_CONFIG };
       groupCache.set(jid, { value: fallback, expiresAt: Date.now() + GROUP_CACHE_TTL_MS });
       return fallback;
     }
-    await db.insert(botGroups).values({ jid, name, activePrefix: "!", prefixes: JSON.stringify(["!", "/", "#", "."]), disabledCommands: JSON.stringify([]), joinMessages: JSON.stringify(DEFAULT_JOIN_MESSAGES), featureConfig: JSON.stringify(DEFAULT_FEATURE_CONFIG) }).onDuplicateKeyUpdate({ set: { name } });
+    await db.insert(botGroups).values({ jid, name, activePrefix: "!", prefixes: JSON.stringify(["!", "/", "#", ".", "~", "+", ">"]), disabledCommands: JSON.stringify([]), joinMessages: JSON.stringify(DEFAULT_JOIN_MESSAGES), featureConfig: JSON.stringify(DEFAULT_FEATURE_CONFIG) }).onDuplicateKeyUpdate({ set: { name } });
     const rows = await db.select().from(botGroups).where(eq(botGroups.jid, jid)).limit(1);
     const row = rows[0];
     const value = {
       jid,
       name: row?.name ?? name,
       activePrefix: row?.activePrefix ?? "!",
-      prefixes: row ? parseJson<string[]>(row.prefixes, ["!", "/", "#", "."]) : ["!", "/", "#", "."],
+      prefixes: row ? parseJson<string[]>(row.prefixes, ["!", "/", "#", ".", "~", "+", ">"]) : ["!", "/", "#", ".", "~", "+", ">"],
       disabledCommands: row ? parseJson<string[]>(row.disabledCommands, []) : [],
       rules: row ? parseJson<Array<Partial<BotRule>>>(row.rules, []).map((rule) => ({ id: rule.id ?? String(Date.now()), text: rule.text ?? "", enabled: rule.enabled !== false })) : [],
       autoReplies: row ? parseJson<AutoReply[]>(row.autoReplies, []) : [],
@@ -125,7 +125,7 @@ export async function listBotGroups(): Promise<GroupConfig[]> {
     jid: row.jid,
     name: row.name,
     activePrefix: row.activePrefix,
-    prefixes: parseJson<string[]>(row.prefixes, ["!", "/", "#", "."]),
+    prefixes: parseJson<string[]>(row.prefixes, ["!", "/", "#", ".", "~", "+", ">"]),
     disabledCommands: parseJson<string[]>(row.disabledCommands, []),
     rules: parseJson<Array<Partial<BotRule>>>(row.rules, []).map((rule) => ({ id: rule.id ?? String(Date.now()), text: rule.text ?? "", enabled: rule.enabled !== false })),
     autoReplies: parseJson<AutoReply[]>(row.autoReplies, []),
@@ -143,7 +143,7 @@ export async function updateGroupConfig(jid: string, patch: Partial<{ name: stri
     jid,
     name: patch.name ?? "Grupo sem nome",
     activePrefix: patch.activePrefix ?? "!",
-    prefixes: JSON.stringify(patch.prefixes ?? ["!", "/", "#", "."]),
+    prefixes: JSON.stringify(patch.prefixes ?? ["!", "/", "#", ".", "~", "+", ">"]),
     disabledCommands: JSON.stringify(patch.disabledCommands ?? []),
     rules: JSON.stringify(patch.rules ?? []),
     autoReplies: JSON.stringify(patch.autoReplies ?? []),
