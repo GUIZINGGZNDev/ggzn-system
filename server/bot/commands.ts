@@ -381,8 +381,10 @@ async function replyAnimated(sock: WASocket, jid: string, text: string) {
 }
 async function replyMenuAnimated(sock: WASocket, jid: string, section: string, text: string) {
   try {
-    await sock.sendMessage(jid, { image: { url: MENU_IMAGE_URLS[section] ?? MENU_IMAGE_URLS.principal } });
-    await reply(sock, jid, text);
+    await sock.sendMessage(jid, {
+      image: { url: MENU_IMAGE_URLS[section] ?? MENU_IMAGE_URLS.principal },
+      caption: text,
+    });
   } catch (error) {
     console.warn(`[GGZN][menu][image-fallback] section=${section}`, error);
     await reply(sock, jid, text);

@@ -231,7 +231,7 @@ describe("GGZN message handler", () => {
   it("normalizes ordinary handler replies to real line breaks", async () => {
     const socket = mockSocket();
     await handleIncomingMessage(socket, ownerMessage("!menu"));
-    const sentText = socket.sendMessage.mock.calls[1]?.[1]?.text as string;
+    const sentText = socket.sendMessage.mock.calls[0]?.[1]?.caption as string;
     expect(sentText).toContain("\n");
     expect(sentText).not.toContain("\\n");
   });
@@ -243,14 +243,16 @@ describe("GGZN message handler", () => {
     await handleIncomingMessage(socket, ownerMessage("!menu voltar"));
     expect(socket.sendPresenceUpdate).not.toHaveBeenCalled();
     expect(socket.sendMessage.mock.calls[0]?.[1]).toEqual(expect.objectContaining({ image: expect.objectContaining({ url: expect.stringContaining("ggzn-menu-") }) }));
-    expect(socket.sendMessage.mock.calls[1]?.[1]).toEqual(expect.objectContaining({ text: expect.stringContaining("GGZN CORPORATION") }));
+    expect(socket.sendMessage.mock.calls[0]?.[1]).toEqual(expect.objectContaining({ caption: expect.stringContaining("GGZN CORPORATION") }));
+    expect(socket.sendMessage).toHaveBeenCalledTimes(3);
+    expect(socket.sendMessage.mock.calls[1]?.[1]).toEqual(expect.objectContaining({ caption: expect.stringContaining("GGZN CORPORATION / IA") }));
   });
 
   it("opens the internal admin and moderation submenus", async () => {
     for (const command of ["!menu adm 1", "!menu mod 1"]) {
       const socket = mockSocket();
       await handleIncomingMessage(socket, ownerMessage(command));
-      const text = socket.sendMessage.mock.calls[1]?.[1]?.text as string;
+      const text = socket.sendMessage.mock.calls[0]?.[1]?.caption as string;
       expect(text).toContain("MENU");
       expect(text).toContain("menu voltar");
     }
@@ -259,7 +261,7 @@ describe("GGZN message handler", () => {
   it("returns to the principal menu with menu voltar", async () => {
     const socket = mockSocket();
     await handleIncomingMessage(socket, ownerMessage("!menu voltar"));
-    const text = socket.sendMessage.mock.calls[1]?.[1]?.text as string;
+    const text = socket.sendMessage.mock.calls[0]?.[1]?.caption as string;
     expect(text).toContain("GGZN CORPORATION");
     expect(text).toContain("MENU PRINCIPAL");
   });

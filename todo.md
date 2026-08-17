@@ -349,3 +349,21 @@
 - [x] Adicionar testes de catálogo, latência, cache e regressões
 - [x] Validar TypeScript, Vitest, build e publicar a nova versão
 
+
+- [ ] Diagnosticar sessão conectada sem processamento de mensagens
+- [ ] Verificar listener `messages.upsert`, filtros `fromMe` e estado do socket
+- [ ] Corrigir o fluxo de recebimento sem gerar novo QR desnecessariamente
+- [ ] Adicionar regressões para mensagens recebidas e reconexão
+- [ ] Validar TypeScript, Vitest, build e publicar a correção
+
+
+- [x] Promover o número confirmado `5534998788431` a Administrador no grupo da mensagem `!id`
+- [x] Validar o cargo persistido sem alterar o Dono principal
+
+
+- [x] Enviar cada menu em uma única foto com o conteúdo completo como legenda
+- [x] Remover a segunda mensagem textual do fluxo normal
+- [x] Preservar fallback textual quando o envio da foto falhar
+- [x] Atualizar testes de legenda, ordem e ausência de mensagem duplicada
+- [x] Validar TypeScript, Vitest, build e publicar a alteração
+
