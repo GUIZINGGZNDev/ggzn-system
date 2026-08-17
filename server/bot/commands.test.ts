@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { WASocket, WAMessage } from "@whiskeysockets/baileys";
-import { applyPrefixAction, atLeast, calculate, formatJoinMessage, getMainMenu, getMenu, handleGroupParticipantsUpdate, handleIncomingMessage, isOwnerIdentity, MENU_NUMBER_MAP, moderationEffect, parseReminderDelay, requiredRoleForCommand, safeZoeiraResponse, withTimeout, MEDIA_TIMEOUT_MS } from "./commands";
+import { applyPrefixAction, atLeast, calculate, clearBotAdminCache, formatJoinMessage, getMainMenu, getMenu, handleGroupParticipantsUpdate, handleIncomingMessage, isOwnerIdentity, MENU_NUMBER_MAP, moderationEffect, parseReminderDelay, requiredRoleForCommand, safeZoeiraResponse, withTimeout, MEDIA_TIMEOUT_MS } from "./commands";
 import { getOrCreateGroup } from "../db";
 
 function ownerMessage(text: string, quoted = false) {
@@ -15,6 +15,7 @@ function mockSocket() {
     groupSettingUpdate: vi.fn().mockResolvedValue(undefined),
     groupParticipantsUpdate: vi.fn().mockResolvedValue(undefined),
     sendPresenceUpdate: vi.fn().mockResolvedValue(undefined),
+    groupMetadata: vi.fn().mockResolvedValue({ participants: [{ id: "5534991286637@s.whatsapp.net", admin: "admin" }] }),
   } as unknown as WASocket & { sendMessage: ReturnType<typeof vi.fn>; groupSettingUpdate: ReturnType<typeof vi.fn>; sendPresenceUpdate: ReturnType<typeof vi.fn> };
 }
 
@@ -206,8 +207,18 @@ describe("GGZN message handler", () => {
     expect(socket.sendMessage).toHaveBeenCalledWith("test-handler@g.us", expect.objectContaining({ text: expect.stringContaining("Grupo silenciado") }));
   });
 
+  it("refuses moderation when the bot is not an administrator", async () => {
+    const socket = mockSocket();
+    clearBotAdminCache("test-handler@g.us");
+    socket.groupMetadata.mockResolvedValue({ participants: [{ id: "5534991286637@s.whatsapp.net", admin: null }] });
+    await handleIncomingMessage(socket, ownerMessage("!silenciar"));
+    expect(socket.groupSettingUpdate).not.toHaveBeenCalled();
+    expect(socket.sendMessage).toHaveBeenCalledWith("test-handler@g.us", expect.objectContaining({ text: expect.stringContaining("precisa ser administrador") }));
+  });
+
   it("deletes a quoted message for limpar", async () => {
     const socket = mockSocket();
+    clearBotAdminCache("test-handler@g.us");
     await handleIncomingMessage(socket, ownerMessage("!limpar", true));
     expect(socket.sendMessage).toHaveBeenCalledWith("test-handler@g.us", expect.objectContaining({ delete: expect.objectContaining({ id: "quoted-1" }) }));
   });

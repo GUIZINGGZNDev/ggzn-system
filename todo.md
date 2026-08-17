@@ -437,3 +437,12 @@
 - [x] Corrigir falha de reconhecimento do proprietário 118730445058158@lid
 - [x] Normalizar formatos reais de remetente recebidos pelo Baileys
 - [x] Testar permissões completas e publicar a correção
+
+- [ ] Diagnosticar por que o bot não está lendo mensagens
+- [ ] Verificar conexão, listener Baileys, filtros e parsing
+- [ ] Corrigir e testar recebimento sem apagar a sessão
+
+- [x] Melhorar detecção de admin/superadmin do WhatsApp
+- [x] Normalizar JID, LID e identificadores com dispositivo
+- [x] Bloquear ações quando o bot não tiver privilégio administrativo
+- [x] Testar cargos, falhas de metadata e publicar

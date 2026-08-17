@@ -20,6 +20,8 @@ const stickerInFlight = new Set<string>();
 const funScores = new Map<string, number>();
 const funCommands = new Set(["fake", "gigante", "spam", "sorteio", "trava-zap", "forca", "batalha", "duelo", "ship", "casal", "sorte", "roleta", "confissao", "previsao", "eu", "velha"]);
 const roleCache = new Map<string, { role: Role; expiresAt: number }>();
+const botAdminCache = new Map<string, { isAdmin: boolean; role: "admin" | "superadmin" | "member"; expiresAt: number }>();
+const BOT_ADMIN_CACHE_TTL_MS = 5_000;
 const ownerBootstrapped = new Set<string>();
 const CONFIGURED_OWNER_IDENTIFIERS = new Set(["118730445058158@lid"]);
 const CONFIGURED_OWNER_NUMBERS = new Set(["118730445058158"]);
@@ -469,6 +471,34 @@ export async function handleGroupParticipantsUpdate(sock: WASocket, event: { id:
   console.info(`[GGZN][group-event] action=${event.action} jid=${event.id} participants=${participantIds.length}`);
 }
 
+function normalizeParticipantJid(value: string) { return value.trim().toLowerCase().replace(/:\d+(?=@)/, ""); }
+function sameParticipant(left: string, right: string) { const a = normalizeParticipantJid(left); const b = normalizeParticipantJid(right); return a === b || (a.replace(/\D/g, "") !== "" && a.replace(/\D/g, "") === b.replace(/\D/g, "")); }
+async function getBotAdminState(sock: WASocket, jid: string) {
+  const cached = botAdminCache.get(jid);
+  if (cached && cached.expiresAt > Date.now()) return cached;
+  try {
+    const metadata = await sock.groupMetadata(jid);
+    const botIds = [sock.user?.id, `${getPhone()}@s.whatsapp.net`].filter(Boolean) as string[];
+    const participant = metadata.participants.find((item) => botIds.some((id) => sameParticipant(item.id, id)));
+    const role = participant?.admin === "superadmin" ? "superadmin" : participant?.admin === "admin" ? "admin" : "member";
+    const result = { isAdmin: role === "admin" || role === "superadmin", role, expiresAt: Date.now() + BOT_ADMIN_CACHE_TTL_MS } as const;
+    botAdminCache.set(jid, result);
+    console.info(`[GGZN][permissions] jid=${jid} botRole=${role}`);
+    return result;
+  } catch (error) {
+    console.warn(`[GGZN][permissions][metadata-failed] jid=${jid}`, error);
+    const result = { isAdmin: false, role: "member" as const, expiresAt: Date.now() + 1_000 };
+    botAdminCache.set(jid, result);
+    return result;
+  }
+}
+async function requireBotAdmin(sock: WASocket, jid: string, action: string) {
+  const state = await getBotAdminState(sock, jid);
+  if (state.isAdmin) return true;
+  await reply(sock, jid, `Não consigo ${action}: o GGZN SYSTEM precisa ser administrador do grupo. Cargo detectado para o bot: ${state.role}.`);
+  return false;
+}
+export async function clearBotAdminCache(jid?: string) { if (jid) botAdminCache.delete(jid); else botAdminCache.clear(); }
 async function requireRole(sock: WASocket, jid: string, sender: string, required: Role) {
   const owner = isOwnerIdentity(sender);
   const cacheKey = `${jid}:${sender}`;
@@ -702,11 +732,11 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
 
   const target = mentioned(message);
   if (["banir", "remover"].includes(command)) {
-    if (!isGroup(jid) || !(await requireRole(sock, jid, sender, "admin")) || !target) return;
+    if (!isGroup(jid) || !(await requireRole(sock, jid, sender, "admin")) || !target || !(await requireBotAdmin(sock, jid, "remover membros"))) return;
     await sock.groupParticipantsUpdate(jid, [target], "remove"); await reply(sock, jid, "Membro removido do grupo."); return;
   }
   if (["promover", "rebaixar"].includes(command)) {
-    if (!isGroup(jid) || !(await requireRole(sock, jid, sender, "admin")) || !target) return;
+    if (!isGroup(jid) || !(await requireRole(sock, jid, sender, "admin")) || !target || !(await requireBotAdmin(sock, jid, "alterar cargos"))) return;
     const targetRole = command === "rebaixar" ? "member" : args[0]?.toLowerCase() === "moderador" ? "moderator" : "admin";
     await sock.groupParticipantsUpdate(jid, [target], command === "promover" ? "promote" : "demote");
     await upsertMember(jid, target, targetRole);
@@ -714,11 +744,11 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
     await reply(sock, jid, `Cargo atualizado: ${targetRole === "moderator" ? "Moderador" : targetRole === "admin" ? "Administrador" : "Membro"}.`); return;
   }
   if (command === "fechar" || command === "abrir") {
-    if (!isGroup(jid) || !(await requireRole(sock, jid, sender, "admin"))) return;
+    if (!isGroup(jid) || !(await requireRole(sock, jid, sender, "admin")) || !(await requireBotAdmin(sock, jid, "alterar configurações do grupo"))) return;
     await sock.groupSettingUpdate(jid, command === "fechar" ? "announcement" : "not_announcement"); await reply(sock, jid, `Grupo ${command === "fechar" ? "fechado" : "aberto"} para mensagens.`); return;
   }
   if (command === "silenciar") {
-    if (!isGroup(jid) || !(await requireRole(sock, jid, sender, "moderator"))) return;
+    if (!isGroup(jid) || !(await requireRole(sock, jid, sender, "moderator")) || !(await requireBotAdmin(sock, jid, "silenciar o grupo"))) return;
     await sock.groupSettingUpdate(jid, "announcement");
     await reply(sock, jid, "Grupo silenciado: somente administradores podem enviar mensagens. Use !abrir para reabrir.");
     return;
@@ -769,6 +799,7 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
     if (!(await requireRole(sock, jid, sender, "moderator"))) return;
     const quoted = message.message?.extendedTextMessage?.contextInfo;
     if (!quoted?.stanzaId) { await reply(sock, jid, "Cite a mensagem que deseja limpar."); return; }
+    if (!(await requireBotAdmin(sock, jid, "apagar mensagens de outros membros"))) return;
     await sock.sendMessage(jid, { delete: { remoteJid: jid, fromMe: false, id: quoted.stanzaId, participant: quoted.participant } });
     return;
   }
