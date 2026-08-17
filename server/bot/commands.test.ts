@@ -22,6 +22,8 @@ describe("GGZN command permissions", () => {
   it("recognizes the configured owner LID with full owner privileges", () => {
     expect(isOwnerIdentity("118730445058158@lid")).toBe(true);
     expect(isOwnerIdentity("118730445058158:7@lid")).toBe(true);
+    expect(isOwnerIdentity("118730445058158@s.whatsapp.net")).toBe(true);
+    expect(isOwnerIdentity("118730445058158:7@s.whatsapp.net")).toBe(true);
     expect(isOwnerIdentity("118730445058159@lid")).toBe(false);
     expect(atLeast("owner", "owner")).toBe(true);
   });

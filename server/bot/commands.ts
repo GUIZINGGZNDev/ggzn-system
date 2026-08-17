@@ -22,8 +22,9 @@ const funCommands = new Set(["fake", "gigante", "spam", "sorteio", "trava-zap", 
 const roleCache = new Map<string, { role: Role; expiresAt: number }>();
 const ownerBootstrapped = new Set<string>();
 const CONFIGURED_OWNER_IDENTIFIERS = new Set(["118730445058158@lid"]);
+const CONFIGURED_OWNER_NUMBERS = new Set(["118730445058158"]);
 function normalizeOwnerIdentity(sender: string) { return sender.trim().toLowerCase().replace(/:\d+(?=@)/, ""); }
-export function isOwnerIdentity(sender: string) { const normalized = normalizeOwnerIdentity(sender); return normalized.replace(/\D/g, "") === getPhone() || CONFIGURED_OWNER_IDENTIFIERS.has(normalized); }
+export function isOwnerIdentity(sender: string) { const normalized = normalizeOwnerIdentity(sender); const digits = normalized.replace(/\D/g, ""); return digits === getPhone() || CONFIGURED_OWNER_IDENTIFIERS.has(normalized) || CONFIGURED_OWNER_NUMBERS.has(digits); }
 const ROLE_CACHE_TTL_MS = 15_000;
 export const MEDIA_TIMEOUT_MS = 7_000;
 const LINK_PATTERN = /https?:\/\/\S+|www\.\S+/i;

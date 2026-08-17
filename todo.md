@@ -433,3 +433,7 @@
 - [x] Registrar 118730445058158@lid como proprietário do bot
 - [x] Garantir permissões completas para comandos e operações protegidas
 - [x] Testar resolução @lid, autorização e ausência de regressão
+
+- [x] Corrigir falha de reconhecimento do proprietário 118730445058158@lid
+- [x] Normalizar formatos reais de remetente recebidos pelo Baileys
+- [x] Testar permissões completas e publicar a correção
