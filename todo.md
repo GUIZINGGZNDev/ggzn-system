@@ -396,3 +396,9 @@
 - [x] Bloquear reconexão automática enquanto a pausa estiver ativa
 - [x] Confirmar estado pausado e reativação somente por ordem do proprietário
 
+
+- [x] Criar novo conjunto de fotos premium para todas as categorias do menu
+- [x] Revisar organização, numeração, prefixos e texto de todos os menus
+- [x] Integrar e validar os novos assets sem reativar o bot
+- [x] Executar testes Vitest, TypeScript, build e validação visual
+- [x] Publicar a versão revisada mantendo o bot pausado

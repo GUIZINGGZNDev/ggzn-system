@@ -151,7 +151,6 @@ const menus: Record<string, (prefix: string) => string> = {
     commandLine(prefix, "menu", "abre o menu completo"),
     commandLine(prefix, "help membros", "abre este submenu"),
     commandLine(prefix, "prefixos", "mostra os prefixos aceitos"),
-    commandLine(prefix, "s", "atalho rápido para sticker"),
     commandLine(prefix, "ping", "responde com o tempo do bot"),
     commandLine(prefix, "hora", "mostra o horário atual"),
     commandLine(prefix, "data", "mostra a data atual"),
@@ -160,7 +159,6 @@ const menus: Record<string, (prefix: string) => string> = {
     commandLine(prefix, "bot", "mostra o estado operacional"),
     commandLine(prefix, "regras", "mostra as regras básicas"),
     commandLine(prefix, "grupo", "mostra o nome e a configuração do grupo"),
-    commandLine(prefix, "versao", "mostra a versão do GGZN SYSTEM"),
     commandLine(prefix, "animar texto", "responde com indicador de digitação"),
   ].join("\n"),
   cargos: (prefix) => [
@@ -400,21 +398,21 @@ async function reply(sock: WASocket, jid: string, text: string) {
 }
 
 const MENU_IMAGE_URLS: Record<string, string> = {
-  principal: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-main_6835aa78.jpg",
-  adm: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-admin_f7ddafa1.jpg",
-  adm1: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-admin_f7ddafa1.jpg",
-  membros: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-membros_a334f316.jpg",
-  cargos: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-cargos_3ea418ac.jpg",
-  zoeira: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-zoeira_a5cd4c98.jpg",
-  info: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-info_abb33e2e.jpg",
-  mod: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-moderacao_457104e4.jpg",
-  mod1: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-moderacao_457104e4.jpg",
-  site: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-site_f34cd480.jpg",
-  textos: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-textos_ec97cb1b.jpg",
-  ia: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-ai_f3682b40.jpg",
-  config: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-config_a6437bd8.jpg",
-  performance: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-info_abb33e2e.jpg",
-  zoeira2: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-zoeira_a5cd4c98.jpg",
+  principal: "/manus-storage/ggzn-menu-principal-v2_4dbb8250.jpg",
+  adm: "/manus-storage/ggzn-menu-adm-v2_2d4241c1.jpg",
+  adm1: "/manus-storage/ggzn-menu-adm-v2_2d4241c1.jpg",
+  membros: "/manus-storage/ggzn-menu-membros-v2_9eb27e28.jpg",
+  cargos: "/manus-storage/ggzn-menu-cargos-v2_7c532130.jpg",
+  zoeira: "/manus-storage/ggzn-menu-zoeira-v2_4053a42f.jpg",
+  info: "/manus-storage/ggzn-menu-info-v2_09809cc7.jpg",
+  mod: "/manus-storage/ggzn-menu-mod-v2_a7f4c2a5.jpg",
+  mod1: "/manus-storage/ggzn-menu-mod-v2_a7f4c2a5.jpg",
+  site: "/manus-storage/ggzn-menu-site-v2_09cf645b.jpg",
+  textos: "/manus-storage/ggzn-menu-textos-v2_6825b267.jpg",
+  ia: "/manus-storage/ggzn-menu-ia-v2_1dd62a6d.jpg",
+  config: "/manus-storage/ggzn-menu-config-v2_ea4348df.jpg",
+  performance: "/manus-storage/ggzn-menu-performance-v2_270d8af6.jpg",
+  zoeira2: "/manus-storage/ggzn-menu-zoeira2-v2_8fa63eaf.jpg",
 };
 async function replyAnimated(sock: WASocket, jid: string, text: string) {
   await reply(sock, jid, text);
