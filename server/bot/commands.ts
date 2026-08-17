@@ -15,6 +15,7 @@ const participantEventHits = new Map<string, number>();
 const memberMessageStats = new Map<string, { count: number; firstSeen: number; lastSeen: number }>();
 const floodHits = new Map<string, number[]>();
 const slowmodeHits = new Map<string, number>();
+const stickerInFlight = new Set<string>();
 const funCommands = new Set(["fake", "gigante", "spam", "sorteio", "trava-zap"]);
 const roleCache = new Map<string, { role: Role; expiresAt: number }>();
 const ownerBootstrapped = new Set<string>();
@@ -670,21 +671,33 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
   }
   if (command === "anunciar") { if (await requireRole(sock, jid, sender, "moderator")) await reply(sock, jid, `*ANÚNCIO*\n${args.join(" ") || "Sem texto informado."}`); return; }
   if (command === "sticker") {
+    if (stickerInFlight.has(jid)) {
+      await reply(sock, jid, "Já estou processando uma figurinha neste grupo. Aguarde a resposta atual.");
+      return;
+    }
     const quoted = message.message?.extendedTextMessage?.contextInfo?.quotedMessage;
     const mediaMessage = message.message?.imageMessage ? message : quoted?.imageMessage ? { ...message, message: quoted } as WAMessage : undefined;
     if (!mediaMessage) {
       await reply(sock, jid, "Envie ou cite uma imagem usando !sticker ou !s.");
       return;
     }
-    const mediaStartedAt = performance.now();
-    const media = await withTimeout(downloadMediaMessage(mediaMessage, "buffer", {}), MEDIA_TIMEOUT_MS);
-    console.info(`[GGZN][external][sticker-download] ${Math.round(performance.now() - mediaStartedAt)}ms`);
-    const conversionStartedAt = performance.now();
-    const sticker = await withTimeout(sharp(media as Buffer).resize(512, 512, { fit: "contain", background: "#ffffff" }).webp({ quality: 82 }).toBuffer(), MEDIA_TIMEOUT_MS);
-    console.info(`[GGZN][external][sticker-conversion] ${Math.round(performance.now() - conversionStartedAt)}ms`);
-    const sendStartedAt = performance.now();
-    await sock.sendMessage(jid, { sticker });
-    console.info(`[GGZN][message][sent] ${Math.round(performance.now() - sendStartedAt)}ms jid=${jid} type=sticker`);
+    stickerInFlight.add(jid);
+    try {
+      const mediaStartedAt = performance.now();
+      const media = await withTimeout(downloadMediaMessage(mediaMessage, "buffer", {}), MEDIA_TIMEOUT_MS);
+      console.info(`[GGZN][external][sticker-download] ${Math.round(performance.now() - mediaStartedAt)}ms`);
+      const conversionStartedAt = performance.now();
+      const sticker = await withTimeout(sharp(media as Buffer).resize(512, 512, { fit: "contain", background: "#ffffff" }).webp({ quality: 82 }).toBuffer(), MEDIA_TIMEOUT_MS);
+      console.info(`[GGZN][external][sticker-conversion] ${Math.round(performance.now() - conversionStartedAt)}ms`);
+      const sendStartedAt = performance.now();
+      await sock.sendMessage(jid, { sticker });
+      console.info(`[GGZN][message][sent] ${Math.round(performance.now() - sendStartedAt)}ms jid=${jid} type=sticker`);
+    } catch (error) {
+      console.warn(`[GGZN][sticker][failed] jid=${jid}`, error);
+      await reply(sock, jid, "Não consegui gerar a figurinha agora. Tente novamente com uma imagem menor ou aguarde a conexão estabilizar.");
+    } finally {
+      stickerInFlight.delete(jid);
+    }
     return;
   }
   if (command === "stext") {

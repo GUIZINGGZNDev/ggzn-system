@@ -16,13 +16,13 @@ const quotedImageMessage = (id: string, command = "!s") => ({ key: { remoteJid: 
 describe("GGZN sticker media flow", () => {
   beforeEach(() => { vi.clearAllMocks(); });
 
-  it("rejects a download that exceeds the media timeout", async () => {
+  it("returns a clear response when a download exceeds the media timeout", async () => {
     vi.useFakeTimers();
     downloadMediaMessage.mockReturnValueOnce(new Promise(() => undefined));
     const pending = handleIncomingMessage(socket, imageMessage("download-timeout"));
-    const assertion = expect(pending).rejects.toThrow("timeout");
     await vi.advanceTimersByTimeAsync(MEDIA_TIMEOUT_MS);
-    await assertion;
+    await pending;
+    expect(socket.sendMessage).toHaveBeenCalledWith("5511999999999@s.whatsapp.net", expect.objectContaining({ text: expect.stringContaining("Não consegui gerar a figurinha") }));
     vi.useRealTimers();
   });
 
@@ -44,15 +44,27 @@ describe("GGZN sticker media flow", () => {
     expect(socket.sendMessage).toHaveBeenCalledWith("5511999999999@s.whatsapp.net", expect.objectContaining({ sticker: expect.any(Buffer) }));
   });
 
+  it("avoids duplicate sticker work while a group is processing", async () => {
+    let resolveMedia!: (value: Buffer) => void;
+    downloadMediaMessage.mockReturnValueOnce(new Promise<Buffer>((resolve) => { resolveMedia = resolve; }));
+    const first = handleIncomingMessage(socket, imageMessage("busy-first"));
+    const second = handleIncomingMessage(socket, imageMessage("busy-second"));
+    await Promise.resolve();
+    expect(socket.sendMessage).toHaveBeenCalledWith("5511999999999@s.whatsapp.net", expect.objectContaining({ text: expect.stringContaining("Já estou processando") }));
+    resolveMedia(Buffer.from('<svg width="32" height="32"><rect width="32" height="32" fill="lime"/></svg>'));
+    await first;
+    await second;
+  });
+
   it("returns a clear response when sticker has no image", async () => {
     const noMediaMessage = { key: { remoteJid: "5511999999999@s.whatsapp.net", id: "no-media" }, message: { conversation: "!s" } } as unknown as WAMessage;
     await handleIncomingMessage(socket, noMediaMessage);
     expect(socket.sendMessage).toHaveBeenCalledWith("5511999999999@s.whatsapp.net", expect.objectContaining({ text: expect.stringContaining("Envie ou cite uma imagem") }));
   });
 
-  it("fails WebP conversion for invalid media before sending a sticker", async () => {
+  it("returns a clear response when WebP conversion fails", async () => {
     downloadMediaMessage.mockResolvedValueOnce(Buffer.from("not-an-image"));
-    await expect(handleIncomingMessage(socket, imageMessage("invalid-media"))).rejects.toBeTruthy();
-    expect(socket.sendMessage).not.toHaveBeenCalled();
+    await handleIncomingMessage(socket, imageMessage("invalid-media"));
+    expect(socket.sendMessage).toHaveBeenCalledWith("5511999999999@s.whatsapp.net", expect.objectContaining({ text: expect.stringContaining("Não consegui gerar a figurinha") }));
   });
 });

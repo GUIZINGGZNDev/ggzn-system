@@ -375,3 +375,9 @@
 - [x] Adicionar testes de mídia, alias, prefixos e regressões
 - [x] Validar TypeScript, Vitest, build e publicar a correção
 
+
+- [x] Diagnosticar a interrupção de respostas e os erros 408 da sessão
+- [x] Restaurar o transporte Baileys sem apagar a sessão persistida
+- [x] Validar recebimento e resposta de comandos após a atualização
+- [x] Registrar regressão de reconexão e validar o estado final
+
