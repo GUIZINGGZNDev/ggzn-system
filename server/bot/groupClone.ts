@@ -3,6 +3,7 @@ import { getOrCreateGroup, updateGroupConfig } from "../db";
 
 type CloneOptions = {
   includeParticipants: boolean;
+  copyPermissions: boolean;
 };
 
 export type CloneResult = {
@@ -49,21 +50,25 @@ export async function cloneWhatsAppGroup(sock: WASocket, sourceJid: string, opti
 
   if (options.includeParticipants) {
     const sourceByJid = new Map(source.participants.map((participant) => [cleanParticipantJid(participant.id), participant]));
-    for (const participant of sourceParticipants.slice(0, 256)) {
-      const sourceParticipant = sourceByJid.get(participant);
-      if (!sourceParticipant?.admin) continue;
-      try {
-        await sock.groupParticipantsUpdate(newJid, [participant], "promote");
-      } catch { failedParticipants.push(participant); }
-    }
+    if (options.copyPermissions) {
+      for (const participant of sourceParticipants.slice(0, 256)) {
+        const sourceParticipant = sourceByJid.get(participant);
+        if (!sourceParticipant?.admin) continue;
+        try {
+          await sock.groupParticipantsUpdate(newJid, [participant], "promote");
+        } catch { failedParticipants.push(participant); }
+      }
+      copied.push("administradores disponíveis");
+    } else skipped.push("administradores (opção sem permissões)");
     if (sourceParticipants.length > 256) skipped.push(`${sourceParticipants.length - 256} membros além do limite seguro de 256`);
     copied.push("participantes disponíveis");
-    copied.push("administradores disponíveis");
   } else {
     skipped.push("participantes (opção desativada)");
   }
 
-  try {
+  if (!options.copyPermissions) {
+    skipped.push("permissões e configurações de acesso (opção sem permissões)");
+  } else try {
     if (source.announce !== undefined) {
       await sock.groupSettingUpdate(newJid, source.announce ? "announcement" : "not_announcement");
       copied.push("permissão de mensagens");
@@ -74,21 +79,21 @@ export async function cloneWhatsAppGroup(sock: WASocket, sourceJid: string, opti
     }
   } catch { skipped.push("permissões do grupo"); }
 
-  try {
+  if (options.copyPermissions) try {
     if (source.memberAddMode !== undefined) {
       await sock.groupMemberAddMode(newJid, source.memberAddMode ? "all_member_add" : "admin_add");
       copied.push("permissão de adicionar membros");
     }
   } catch { skipped.push("permissão de adicionar membros"); }
 
-  try {
+  if (options.copyPermissions) try {
     if (source.ephemeralDuration !== undefined) {
       await sock.groupToggleEphemeral(newJid, source.ephemeralDuration);
       copied.push("mensagens temporárias");
     }
   } catch { skipped.push("mensagens temporárias"); }
 
-  try {
+  if (options.copyPermissions) try {
     if (source.joinApprovalMode !== undefined) {
       await sock.groupJoinApprovalMode(newJid, source.joinApprovalMode ? "on" : "off");
       copied.push("aprovação de entrada");

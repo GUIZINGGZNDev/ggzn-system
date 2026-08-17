@@ -34,7 +34,7 @@ function makeSocket() {
 describe("cloneWhatsAppGroup", () => {
   it("copies metadata, available members, permissions and reports the new JID", async () => {
     const sock = makeSocket();
-    const result = await cloneWhatsAppGroup(sock, "source@g.us", { includeParticipants: true });
+    const result = await cloneWhatsAppGroup(sock, "source@g.us", { includeParticipants: true, copyPermissions: true });
 
     expect(result.newJid).toBe("clone@g.us");
     expect(result.name).toBe("Grupo Original");
@@ -44,9 +44,18 @@ describe("cloneWhatsAppGroup", () => {
     expect(sock.groupSettingUpdate).toHaveBeenCalled();
   });
 
+  it("does not copy permissions or administrator roles when disabled", async () => {
+    const sock = makeSocket();
+    const result = await cloneWhatsAppGroup(sock, "source@g.us", { includeParticipants: true, copyPermissions: false });
+
+    expect(sock.groupParticipantsUpdate).not.toHaveBeenCalled();
+    expect(sock.groupSettingUpdate).not.toHaveBeenCalled();
+    expect(result.skipped).toEqual(expect.arrayContaining(["administradores (opção sem permissões)", "permissões e configurações de acesso (opção sem permissões)"]));
+  });
+
   it("can clone only the group shell when member inclusion is disabled", async () => {
     const sock = makeSocket();
-    const result = await cloneWhatsAppGroup(sock, "source@g.us", { includeParticipants: false });
+    const result = await cloneWhatsAppGroup(sock, "source@g.us", { includeParticipants: false, copyPermissions: false });
 
     expect(sock.groupCreate).toHaveBeenCalledWith("Grupo Original", []);
     expect(result.skipped).toContain("participantes (opção desativada)");

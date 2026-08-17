@@ -664,9 +664,9 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
   if (command === "status" || command === "bot") { const bot = getBotState(); await reply(sock, jid, `Status: ${bot.status.toUpperCase()}\nTransporte: Baileys\nNúmero: ${bot.phone}`); return; }
   if (command === "clonar") {
     if (!isGroup(jid) || !(await requireRole(sock, jid, sender, "admin"))) return;
-    if (args[0]?.toLowerCase() !== "confirmar") { await reply(sock, jid, "CLONAGEM PROTEGIDA\nUse !clonar confirmar para criar uma cópia deste grupo.\nUse !clonar confirmar sem-membros para copiar apenas nome, foto, descrição, permissões e configurações."); return; }
+    if (args[0]?.toLowerCase() !== "confirmar") { await reply(sock, jid, "CLONAGEM PROTEGIDA\nUse !clonar confirmar para criar uma cópia sem herdar permissões.\nUse !clonar confirmar com-permissoes para copiar permissões também.\nUse !clonar confirmar sem-membros para copiar apenas nome, foto, descrição e configurações do GGZN."); return; }
     try {
-      const result = await cloneWhatsAppGroup(sock, jid, { includeParticipants: args[1]?.toLowerCase() !== "sem-membros" });
+      const result = await cloneWhatsAppGroup(sock, jid, { includeParticipants: args[1]?.toLowerCase() !== "sem-membros", copyPermissions: args[1]?.toLowerCase() === "com-permissoes" });
       const skipped = result.skipped.length ? `\nNão copiado: ${result.skipped.join(", ")}` : "";
       const failed = result.failedParticipants.length ? `\nFalhas de permissões: ${result.failedParticipants.length}` : "";
       await reply(sock, jid, `GRUPO CLONADO\nNome: ${result.name}\nNovo JID: ${result.newJid}\nCopiado: ${result.copied.join(", ")}${skipped}${failed}`);

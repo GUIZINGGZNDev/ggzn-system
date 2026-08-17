@@ -199,7 +199,7 @@ export async function requestPairingCode() {
 export function getPhone() { return PHONE; }
 export function getConnectedSocket() { return state.status === "connected" ? state.sock : undefined; }
 
-export async function cloneGroup(sourceJid: string, options: { includeParticipants: boolean }): Promise<CloneResult> {
+export async function cloneGroup(sourceJid: string, options: { includeParticipants: boolean; copyPermissions: boolean }): Promise<CloneResult> {
   if (state.paused) throw new Error("O bot está pausado.");
   const socket = getConnectedSocket();
   if (!socket) throw new Error("O bot precisa estar conectado para clonar um grupo.");

@@ -29,7 +29,7 @@ export const appRouter = router({
       autoReplies: z.array(z.object({ trigger: z.string().min(1).max(40), response: z.string().min(1).max(500), enabled: z.boolean() })).max(100),
       featureConfig: z.object({ slowmodeSeconds: z.number().int().min(0).max(3600), antiFlood: z.boolean(), blockLinks: z.boolean(), logs: z.boolean(), warnings: z.record(z.string(), z.array(z.string())) }),
     })).mutation(({ input }) => updateGroupConfig(input.jid, { rules: input.rules, autoReplies: input.autoReplies, featureConfig: input.featureConfig }).then(() => ({ success: true }))),
-    cloneGroup: adminProcedure.input(z.object({ sourceJid: z.string().regex(/@g\\.us$/), includeParticipants: z.boolean(), confirmation: z.literal("CLONAR") })).mutation(({ input }) => cloneGroup(input.sourceJid, { includeParticipants: input.includeParticipants })),
+    cloneGroup: adminProcedure.input(z.object({ sourceJid: z.string().regex(/@g\\.us$/), includeParticipants: z.boolean(), copyPermissions: z.boolean().default(false), confirmation: z.literal("CLONAR") })).mutation(({ input }) => cloneGroup(input.sourceJid, { includeParticipants: input.includeParticipants, copyPermissions: input.copyPermissions })),
   }),
 
   // TODO: add feature routers here, e.g.

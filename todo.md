@@ -425,3 +425,7 @@
 - [x] Adicionar indicador animado de progresso durante a clonagem
 - [x] Bloquear nova clonagem enquanto a operação estiver em andamento
 - [x] Atualizar contrato de testes e validar build
+
+- [x] Adicionar opção de clonar sem permissões do grupo original
+- [x] Atualizar comando, painel e mensagens para refletir a opção
+- [x] Testar que permissões, admins e configurações de grupo não são herdados
