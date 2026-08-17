@@ -421,3 +421,7 @@
 - [x] Adicionar fluxo de clonagem ao painel administrativo
 - [x] Cobrir permissões, confirmação, cópia de configurações e rollback lógico
 - [x] Validar TypeScript, Vitest, build e publicar a função
+
+- [x] Adicionar indicador animado de progresso durante a clonagem
+- [x] Bloquear nova clonagem enquanto a operação estiver em andamento
+- [x] Atualizar contrato de testes e validar build

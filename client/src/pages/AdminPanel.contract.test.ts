@@ -21,5 +21,9 @@ describe("AdminPanel UI contract", () => {
     expect(source).toContain("cloneGroup.useMutation");
     expect(source).toContain("Digite CLONAR");
     expect(source).toContain("Incluir membros");
+    expect(source).toContain("cloneStage");
+    expect(source).toContain("Processando");
+    expect(source).toContain("animate-spin");
+    expect(source).toContain("Não feche esta página");
   });
 });
