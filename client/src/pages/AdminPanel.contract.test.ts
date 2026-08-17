@@ -12,5 +12,11 @@ describe("AdminPanel UI contract", () => {
     expect(source).toContain("Auto-respostas");
     expect(source).toContain("Pausar");
     expect(source).toContain("Ativar");
+    expect(source).toContain("Controles de moderação");
+    expect(source).toContain("Anti-flood");
+    expect(source).toContain("Bloquear links");
+    expect(source).toContain("Slowmode (seg.)");
+    expect(source).toContain("Fotos dos menus");
+    expect(source).toContain("ggzn-menu-principal-v2");
   });
 });

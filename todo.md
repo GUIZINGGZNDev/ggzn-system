@@ -408,3 +408,9 @@
 - [x] Remover Site Oficial da navegação e dos menus do WhatsApp
 - [x] Atualizar testes de interface, menus e endpoints
 - [x] Validar build, estado pausado e publicar a alteração
+
+- [x] Exibir prévias das fotos novas no painel/site e corrigir referências que não aparecem no WhatsApp
+- [x] Ampliar o painel de moderação com controles de grupo e segurança
+- [x] Integrar estados, feedbacks e proteção dos novos controles
+- [x] Atualizar testes de painel, endpoints e contratos de menus/fotos
+- [x] Validar responsividade, build e publicar a expansão

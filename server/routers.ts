@@ -26,7 +26,8 @@ export const appRouter = router({
       jid: z.string().min(1).max(191),
       rules: z.array(z.object({ id: z.string(), text: z.string().min(1).max(240), enabled: z.boolean() })).max(100),
       autoReplies: z.array(z.object({ trigger: z.string().min(1).max(40), response: z.string().min(1).max(500), enabled: z.boolean() })).max(100),
-    })).mutation(({ input }) => updateGroupConfig(input.jid, { rules: input.rules, autoReplies: input.autoReplies }).then(() => ({ success: true }))),
+      featureConfig: z.object({ slowmodeSeconds: z.number().int().min(0).max(3600), antiFlood: z.boolean(), blockLinks: z.boolean(), logs: z.boolean(), warnings: z.record(z.string(), z.array(z.string())) }),
+    })).mutation(({ input }) => updateGroupConfig(input.jid, { rules: input.rules, autoReplies: input.autoReplies, featureConfig: input.featureConfig }).then(() => ({ success: true }))),
   }),
 
   // TODO: add feature routers here, e.g.

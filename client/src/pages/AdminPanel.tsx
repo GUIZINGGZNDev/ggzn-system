@@ -6,12 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc";
 import { removeAutoReply, replaceRule, toggleAutoReply, toggleRule } from "./AdminPanel.helpers";
-import { ArrowLeft, Bot, Check, ChevronRight, Plus, Save, Shield, Trash2 } from "lucide-react";
+import { ArrowLeft, Bot, Check, ChevronRight, Image as ImageIcon, Link2, Plus, Save, Shield, SlidersHorizontal, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 
 type Rule = { id: string; text: string; enabled: boolean };
 type AutoReply = { trigger: string; response: string; enabled: boolean };
+type FeatureConfig = { slowmodeSeconds: number; antiFlood: boolean; blockLinks: boolean; logs: boolean; warnings: Record<string, string[]> };
 
 export default function AdminPanel() {
   const groups = trpc.botAdmin.listGroups.useQuery(undefined, { retry: false });
@@ -23,6 +24,7 @@ export default function AdminPanel() {
   const [newRule, setNewRule] = useState("");
   const [newTrigger, setNewTrigger] = useState("");
   const [newResponse, setNewResponse] = useState("");
+  const [featureConfig, setFeatureConfig] = useState<FeatureConfig>({ slowmodeSeconds: 0, antiFlood: false, blockLinks: false, logs: false, warnings: {} });
 
   useEffect(() => {
     if (!selectedJid && groups.data?.[0]) setSelectedJid(groups.data[0].jid);
@@ -32,17 +34,18 @@ export default function AdminPanel() {
     if (group.data) {
       setRules(group.data.rules);
       setAutoReplies(group.data.autoReplies);
+      setFeatureConfig(group.data.featureConfig);
     }
   }, [group.data]);
 
   const selectedName = useMemo(() => groups.data?.find((item) => item.jid === selectedJid)?.name ?? "Nenhum grupo selecionado", [groups.data, selectedJid]);
   const hasChanges = useMemo(() => {
     if (!group.data) return false;
-    return JSON.stringify(group.data.rules) !== JSON.stringify(rules) || JSON.stringify(group.data.autoReplies) !== JSON.stringify(autoReplies);
-  }, [group.data, rules, autoReplies]);
+    return JSON.stringify(group.data.rules) !== JSON.stringify(rules) || JSON.stringify(group.data.autoReplies) !== JSON.stringify(autoReplies) || JSON.stringify(group.data.featureConfig) !== JSON.stringify(featureConfig);
+  }, [group.data, rules, autoReplies, featureConfig]);
   const save = () => {
     if (!selectedJid || !hasChanges || update.isPending) return;
-    update.mutate({ jid: selectedJid, rules, autoReplies }, { onSuccess: () => void group.refetch() });
+    update.mutate({ jid: selectedJid, rules, autoReplies, featureConfig }, { onSuccess: () => void group.refetch() });
   };
 
   return (
@@ -72,6 +75,10 @@ export default function AdminPanel() {
 
             <div className="space-y-5">
               <Card className="rounded-none border-2 border-black bg-black text-white shadow-[6px_6px_0_#ffb15c]"><CardContent className="flex flex-col gap-3 p-5 md:flex-row md:items-center md:justify-between"><div><p className="text-xs font-black uppercase tracking-[0.2em] text-lime-300">Grupo ativo</p><h2 className="mt-1 text-2xl font-black uppercase">{selectedName}</h2><p className="font-mono text-xs text-white/60">{selectedJid || "Selecione um grupo"}</p></div><Button onClick={save} disabled={!selectedJid || !hasChanges || update.isPending} className="min-h-11 bg-lime-300 font-black text-black hover:bg-lime-200 disabled:opacity-50"><Save className="mr-2 h-4 w-4" /> {update.isPending ? "Salvando" : hasChanges ? "Salvar tudo" : "Tudo salvo"}</Button></CardContent></Card>
+
+              <Card className="rounded-none border-2 border-black bg-white shadow-[4px_4px_0_#b7ff2a]"><CardHeader className="border-b-2 border-black"><CardTitle className="flex items-center gap-2 text-lg font-black uppercase"><SlidersHorizontal className="h-5 w-5" /> Controles de moderação</CardTitle></CardHeader><CardContent className="grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-4"><label className="flex cursor-pointer items-center justify-between gap-3 border-2 border-black p-3"><span><span className="block text-sm font-black uppercase">Anti-flood</span><span className="text-xs font-medium text-black/60">Limita rajadas</span></span><input type="checkbox" checked={featureConfig.antiFlood} onChange={(event) => setFeatureConfig({ ...featureConfig, antiFlood: event.target.checked })} className="h-5 w-5 accent-lime-400" /></label><label className="flex cursor-pointer items-center justify-between gap-3 border-2 border-black p-3"><span><span className="block text-sm font-black uppercase">Bloquear links</span><span className="text-xs font-medium text-black/60">Filtra URLs</span></span><input type="checkbox" checked={featureConfig.blockLinks} onChange={(event) => setFeatureConfig({ ...featureConfig, blockLinks: event.target.checked })} className="h-5 w-5 accent-lime-400" /></label><label className="flex cursor-pointer items-center justify-between gap-3 border-2 border-black p-3"><span><span className="block text-sm font-black uppercase">Logs admin</span><span className="text-xs font-medium text-black/60">Registra ações</span></span><input type="checkbox" checked={featureConfig.logs} onChange={(event) => setFeatureConfig({ ...featureConfig, logs: event.target.checked })} className="h-5 w-5 accent-lime-400" /></label><label className="border-2 border-black p-3"><span className="block text-sm font-black uppercase">Slowmode (seg.)</span><Input type="number" min={0} max={3600} value={featureConfig.slowmodeSeconds} onChange={(event) => setFeatureConfig({ ...featureConfig, slowmodeSeconds: Math.max(0, Math.min(3600, Number(event.target.value) || 0)) })} className="mt-2 h-9 rounded-none border-2 border-black" /></label></CardContent></Card>
+
+              <Card className="rounded-none border-2 border-black bg-[#050505] text-white shadow-[4px_4px_0_#ffb15c]"><CardHeader className="border-b-2 border-white/30"><CardTitle className="flex items-center gap-2 text-lg font-black uppercase"><ImageIcon className="h-5 w-5 text-lime-300" /> Fotos dos menus</CardTitle></CardHeader><CardContent className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-4 lg:grid-cols-7">{[{ label: "Principal", url: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-principal-v2_4dbb8250.jpg" }, { label: "ADM", url: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-adm-v2_2d4241c1.jpg" }, { label: "Zoeira", url: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-zoeira-v2_4053a42f.jpg" }, { label: "Info", url: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-info-v2_09809cc7.jpg" }, { label: "Mod", url: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-mod-v2_a7f4c2a5.jpg" }, { label: "IA", url: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-ia-v2_1dd62a6d.jpg" }, { label: "Performance", url: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-performance-v2_270d8af6.jpg" }].map((photo) => <figure key={photo.label} className="overflow-hidden border-2 border-white/30"><img src={photo.url} alt={`Foto do menu ${photo.label}`} className="aspect-[4/5] w-full object-cover" loading="lazy" /><figcaption className="border-t border-white/30 p-2 text-[10px] font-black uppercase text-lime-300">{photo.label}</figcaption></figure>)}</CardContent></Card>
 
               <div className="grid gap-5 xl:grid-cols-2">
                 <Card className="rounded-none border-2 border-black bg-white"><CardHeader className="border-b-2 border-black"><CardTitle className="text-lg font-black uppercase">Regras do grupo</CardTitle></CardHeader><CardContent className="space-y-4 p-5">

@@ -385,21 +385,22 @@ async function reply(sock: WASocket, jid: string, text: string) {
   console.info(`[GGZN][message][sent] ${elapsed}ms jid=${jid} chars=${text.length}`);
 }
 
+const MENU_IMAGE_BASE = "https://ggznbot-g89bqgka.manus.space";
 const MENU_IMAGE_URLS: Record<string, string> = {
-  principal: "/manus-storage/ggzn-menu-principal-v2_4dbb8250.jpg",
-  adm: "/manus-storage/ggzn-menu-adm-v2_2d4241c1.jpg",
-  adm1: "/manus-storage/ggzn-menu-adm-v2_2d4241c1.jpg",
-  membros: "/manus-storage/ggzn-menu-membros-v2_9eb27e28.jpg",
-  cargos: "/manus-storage/ggzn-menu-cargos-v2_7c532130.jpg",
-  zoeira: "/manus-storage/ggzn-menu-zoeira-v2_4053a42f.jpg",
-  info: "/manus-storage/ggzn-menu-info-v2_09809cc7.jpg",
-  mod: "/manus-storage/ggzn-menu-mod-v2_a7f4c2a5.jpg",
-  mod1: "/manus-storage/ggzn-menu-mod-v2_a7f4c2a5.jpg",
-  textos: "/manus-storage/ggzn-menu-textos-v2_6825b267.jpg",
-  ia: "/manus-storage/ggzn-menu-ia-v2_1dd62a6d.jpg",
-  config: "/manus-storage/ggzn-menu-config-v2_ea4348df.jpg",
-  performance: "/manus-storage/ggzn-menu-performance-v2_270d8af6.jpg",
-  zoeira2: "/manus-storage/ggzn-menu-zoeira2-v2_8fa63eaf.jpg",
+  principal: `${MENU_IMAGE_BASE}/manus-storage/ggzn-menu-principal-v2_4dbb8250.jpg`,
+  adm: `${MENU_IMAGE_BASE}/manus-storage/ggzn-menu-adm-v2_2d4241c1.jpg`,
+  adm1: `${MENU_IMAGE_BASE}/manus-storage/ggzn-menu-adm-v2_2d4241c1.jpg`,
+  membros: `${MENU_IMAGE_BASE}/manus-storage/ggzn-menu-membros-v2_9eb27e28.jpg`,
+  cargos: `${MENU_IMAGE_BASE}/manus-storage/ggzn-menu-cargos-v2_7c532130.jpg`,
+  zoeira: `${MENU_IMAGE_BASE}/manus-storage/ggzn-menu-zoeira-v2_4053a42f.jpg`,
+  info: `${MENU_IMAGE_BASE}/manus-storage/ggzn-menu-info-v2_09809cc7.jpg`,
+  mod: `${MENU_IMAGE_BASE}/manus-storage/ggzn-menu-mod-v2_a7f4c2a5.jpg`,
+  mod1: `${MENU_IMAGE_BASE}/manus-storage/ggzn-menu-mod-v2_a7f4c2a5.jpg`,
+  textos: `${MENU_IMAGE_BASE}/manus-storage/ggzn-menu-textos-v2_6825b267.jpg`,
+  ia: `${MENU_IMAGE_BASE}/manus-storage/ggzn-menu-ia-v2_1dd62a6d.jpg`,
+  config: `${MENU_IMAGE_BASE}/manus-storage/ggzn-menu-config-v2_ea4348df.jpg`,
+  performance: `${MENU_IMAGE_BASE}/manus-storage/ggzn-menu-performance-v2_270d8af6.jpg`,
+  zoeira2: `${MENU_IMAGE_BASE}/manus-storage/ggzn-menu-zoeira2-v2_8fa63eaf.jpg`,
 };
 async function replyAnimated(sock: WASocket, jid: string, text: string) {
   await reply(sock, jid, text);
