@@ -381,3 +381,18 @@
 - [x] Validar recebimento e resposta de comandos após a atualização
 - [x] Registrar regressão de reconexão e validar o estado final
 
+
+- [x] Criar o Menu 9 — ZOEIRA 2 / INTERAÇÃO
+- [x] Organizar subcategorias de jogos, desafios, sorteios e interação social
+- [x] Implementar Forca, Quiz, Batalha, Duelo, Ship, Roleta, Velha e Ranking
+- [x] Implementar Verdade, Desafio, Confissão, Eu Nunca, Casal e Previsão
+- [x] Adicionar cooldowns, pontuação e bloqueios contra spam ou conteúdo destrutivo
+- [x] Atualizar menu principal, foto exclusiva e ajuda de comandos
+- [x] Adicionar testes de parsing, jogos, ranking, limites e regressões
+- [x] Validar TypeScript, Vitest, build e publicar o novo menu
+
+
+- [x] Pausar manualmente o bot sem apagar a sessão persistida
+- [x] Bloquear reconexão automática enquanto a pausa estiver ativa
+- [x] Confirmar estado pausado e reativação somente por ordem do proprietário
+

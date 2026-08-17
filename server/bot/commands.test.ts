@@ -83,6 +83,7 @@ describe("GGZN command permissions", () => {
       "│ 06 • TEXTOS                  │",
       "│ 07 • IA / AUTO-RESPONDER     │",
       "│ 08 • PERFORMANCE / RÁPIDOS   │",
+      "│ 09 • ZOEIRA 2 / INTERAÇÃO    │",
       "└──────────────────────────────┘", 
       "",
       "┌─ ACESSOS ────────────────────┐",
@@ -94,6 +95,7 @@ describe("GGZN command permissions", () => {
       "│ $menu 6  •  $menu textos│",
       "│ $menu 7  •  $menu ia    │",
       "│ $menu 8  •  $menu performance │",
+      "│ $menu 9  •  $menu zoeira2 │",
       "└──────────────────────────────┘",
     ].join("\n");
     expect(getMainMenu("$")).toBe(expected);
@@ -300,5 +302,23 @@ describe("GGZN message handler", () => {
       await handleIncomingMessage(socket, ownerMessage(`!${command}`));
       expect(socket.sendMessage).toHaveBeenCalledWith("test-handler@g.us", expect.objectContaining({ text: expect.any(String) }));
     }
+  });
+
+  it("opens the organized interaction menu and answers new safe fun commands", async () => {
+    const menuSocket = mockSocket();
+    await handleIncomingMessage(menuSocket, ownerMessage("!menu 9"));
+    expect(menuSocket.sendMessage.mock.calls[0]?.[1]?.caption ?? menuSocket.sendMessage.mock.calls[0]?.[1]?.text).toContain("ZOEIRA 2");
+    const forcaSocket = mockSocket();
+    await handleIncomingMessage(forcaSocket, ownerMessage("!forca iniciar"));
+    expect(forcaSocket.sendMessage.mock.calls[0]?.[1]?.text).toContain("FORCA GGZN");
+    const rouletteSocket = mockSocket();
+    await handleIncomingMessage(rouletteSocket, ownerMessage("!roleta azul vermelho"));
+    expect(rouletteSocket.sendMessage.mock.calls[0]?.[1]?.text).toContain("ROLETA");
+    const shipSocket = mockSocket();
+    await handleIncomingMessage(shipSocket, ownerMessage("!ship @ana @bia"));
+    expect(shipSocket.sendMessage.mock.calls[0]?.[1]?.text).toContain("SHIP GGZN");
+    const rankingSocket = mockSocket();
+    await handleIncomingMessage(rankingSocket, ownerMessage("!ranking zoeira"));
+    expect(rankingSocket.sendMessage.mock.calls[0]?.[1]?.text).toContain("RANKING ZOEIRA");
   });
 });

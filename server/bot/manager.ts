@@ -24,6 +24,7 @@ type BotState = {
   registered?: boolean;
   reconnectAttempts?: number;
   reconnectTimer?: ReturnType<typeof setTimeout>;
+  paused?: boolean;
 };
 
 const PAIRING_CODE_TTL_MS = 60_000;
@@ -45,10 +46,35 @@ async function ensureSessionDir() {
 }
 
 export function getBotState() {
-  return { phone: PHONE, status: state.status, qrDataUrl: state.qrDataUrl, pairingCode: state.pairingCode, pairingIssuedAt: state.pairingIssuedAt, pairingExpiresAt: state.pairingExpiresAt, lastError: state.lastError };
+  return { phone: PHONE, status: state.paused ? "paused" : state.status, paused: state.paused, qrDataUrl: state.qrDataUrl, pairingCode: state.pairingCode, pairingIssuedAt: state.pairingIssuedAt, pairingExpiresAt: state.pairingExpiresAt, lastError: state.lastError };
+}
+
+const PAUSE_MARKER = path.join(SESSION_DIR, ".paused");
+
+async function isPaused() {
+  try { await fs.access(PAUSE_MARKER); return true; } catch { return false; }
+}
+
+export async function pauseBot() {
+  state.paused = true;
+  if (state.reconnectTimer) { clearTimeout(state.reconnectTimer); state.reconnectTimer = undefined; }
+  await ensureSessionDir();
+  await fs.writeFile(PAUSE_MARKER, "paused\n", "utf8");
+  const socket = state.sock as (WASocket & { ws?: { close?: () => void } }) | undefined;
+  socket?.ws?.close?.();
+  state.sock = undefined;
+  state.status = "disconnected";
+  await updateSession(PHONE, "disconnected", "manual pause");
+}
+
+export async function resumeBot() {
+  state.paused = false;
+  try { await fs.unlink(PAUSE_MARKER); } catch { /* marker inexistente */ }
+  return startBot();
 }
 
 export async function startBot() {
+  if (state.paused || await isPaused()) { state.paused = true; state.status = "disconnected"; return; }
   if (state.connecting) return state.connecting;
   if (state.sock && ["connecting", "connected", "needs_pairing"].includes(state.status)) return;
 
@@ -97,7 +123,7 @@ export async function startBot() {
         console.warn(`[GGZN] connection closed code=${code ?? "unknown"}`);
         state.pairingReadyResolve?.();
         const attempts = state.reconnectAttempts ?? 0;
-        const shouldReconnect = shouldRetryConnection(code, Boolean(state.registered), attempts);
+        const shouldReconnect = !state.paused && !await isPaused() && shouldRetryConnection(code, Boolean(state.registered), attempts);
         state.status = shouldReconnect ? "disconnected" : "needs_pairing";
         await updateSession(PHONE, state.status, `connection closed: ${code ?? "unknown"}`);
         if (shouldReconnect) {

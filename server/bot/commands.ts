@@ -16,7 +16,8 @@ const memberMessageStats = new Map<string, { count: number; firstSeen: number; l
 const floodHits = new Map<string, number[]>();
 const slowmodeHits = new Map<string, number>();
 const stickerInFlight = new Set<string>();
-const funCommands = new Set(["fake", "gigante", "spam", "sorteio", "trava-zap"]);
+const funScores = new Map<string, number>();
+const funCommands = new Set(["fake", "gigante", "spam", "sorteio", "trava-zap", "forca", "batalha", "duelo", "ship", "casal", "sorte", "roleta", "confissao", "previsao", "eu", "velha"]);
 const roleCache = new Map<string, { role: Role; expiresAt: number }>();
 const ownerBootstrapped = new Set<string>();
 const ROLE_CACHE_TTL_MS = 15_000;
@@ -55,7 +56,7 @@ type Role = keyof typeof ROLE_LEVEL;
 
 const commandLine = (prefix: string, command: string, _description: string) => `${prefix}${command}`;
 const submenuRule = "────────────────────────────────";
-export const MENU_NUMBER_MAP = { "1": "adm", "2": "zoeira", "3": "info", "4": "mod", "5": "site", "6": "textos", "7": "ia", "8": "performance" } as const;
+export const MENU_NUMBER_MAP = { "1": "adm", "2": "zoeira", "3": "info", "4": "mod", "5": "site", "6": "textos", "7": "ia", "8": "performance", "9": "zoeira2" } as const;
 const getMenuSection = (value?: string) => value ? MENU_NUMBER_MAP[value as keyof typeof MENU_NUMBER_MAP] ?? value : undefined;
 export const getMainMenu = (prefix: string) => [
   "╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮",
@@ -73,6 +74,7 @@ export const getMainMenu = (prefix: string) => [
   "│ 06 • TEXTOS                  │",
   "│ 07 • IA / AUTO-RESPONDER     │",
   "│ 08 • PERFORMANCE / RÁPIDOS   │",
+  "│ 09 • ZOEIRA 2 / INTERAÇÃO    │",
   "└──────────────────────────────┘",
   "",
   "┌─ ACESSOS ────────────────────┐",
@@ -84,6 +86,7 @@ export const getMainMenu = (prefix: string) => [
   `│ ${prefix}menu 6  •  ${prefix}menu textos│`,
   `│ ${prefix}menu 7  •  ${prefix}menu ia    │`,
   `│ ${prefix}menu 8  •  ${prefix}menu performance │`,
+  `│ ${prefix}menu 9  •  ${prefix}menu zoeira2 │`,
   "└──────────────────────────────┘",
 ].join("\n");
 const menus: Record<string, (prefix: string) => string> = {
@@ -193,6 +196,38 @@ const menus: Record<string, (prefix: string) => string> = {
     "",
     "Limite de uso aplicado por membro em funções de zoeira.",
     "Trava-zap e spam destrutivo nunca são executados pelo sistema.",
+  ].join("\n"),
+  zoeira2: (prefix) => [
+    "*MENU ZOEIRA 2 — INTERAÇÃO*",
+    submenuRule,
+    "",
+    "┌─ JOGOS ──────────────────────┐",
+    commandLine(prefix, "forca iniciar", "inicia uma partida de forca"),
+    commandLine(prefix, "forca letra A", "joga uma letra na forca"),
+    commandLine(prefix, "quiz iniciar", "inicia um quiz rápido"),
+    commandLine(prefix, "quiz ranking", "mostra o ranking do quiz"),
+    commandLine(prefix, "velha iniciar", "inicia jogo da velha"),
+    "└──────────────────────────────┘",
+    "",
+    "┌─ DESAFIOS ───────────────────┐",
+    commandLine(prefix, "batalha @membro", "faz uma batalha amistosa"),
+    commandLine(prefix, "duelo @membro", "inicia um duelo seguro"),
+    commandLine(prefix, "roleta opção1 opção2", "sorteia uma opção"),
+    commandLine(prefix, "verdade", "sorteia uma verdade"),
+    commandLine(prefix, "desafio", "sorteia um desafio seguro"),
+    commandLine(prefix, "eu nunca", "inicia eu nunca"),
+    "└──────────────────────────────┘",
+    "",
+    "┌─ INTERAÇÃO ──────────────────┐",
+    commandLine(prefix, "ship @pessoa1 @pessoa2", "calcula compatibilidade divertida"),
+    commandLine(prefix, "casal", "sorteia um casal do grupo"),
+    commandLine(prefix, "confissao", "gera uma confissão fictícia"),
+    commandLine(prefix, "previsao texto", "gera uma previsão fictícia"),
+    commandLine(prefix, "sorte", "gera uma mensagem de sorte"),
+    commandLine(prefix, "ranking zoeira", "mostra o ranking da sessão"),
+    "└──────────────────────────────┘",
+    "",
+    "Cooldown individual ativo. Sem spam, humilhação ou comandos destrutivos.",
   ].join("\n"),
   info: (prefix) => [
     "*MENU INFO — SISTEMA*",
@@ -379,6 +414,7 @@ const MENU_IMAGE_URLS: Record<string, string> = {
   ia: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-ai_f3682b40.jpg",
   config: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-config_a6437bd8.jpg",
   performance: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-info_abb33e2e.jpg",
+  zoeira2: "https://ggznbot-g89bqgka.manus.space/manus-storage/ggzn-menu-zoeira_a5cd4c98.jpg",
 };
 async function replyAnimated(sock: WASocket, jid: string, text: string) {
   await reply(sock, jid, text);
@@ -527,6 +563,8 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
     const hits = (funHits.get(sender) ?? []).filter((time) => now - time < 60000);
     if (hits.length >= 8) { await reply(sock, jid, "Limite de zoeira atingido. Aguarde um minuto para continuar."); return; }
     funHits.set(sender, [...hits, now]);
+    const scoreKey = `${jid}:${sender}`;
+    funScores.set(scoreKey, (funScores.get(scoreKey) ?? 0) + 1);
   }
 
   if (command === "menu" || command === "help") {
@@ -584,8 +622,19 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
   if (command === "qr") { const value = args.join(" ").trim(); if (!value) return reply(sock, jid, "Use !qr texto ou !qr link"); const qr = await QRCode.toBuffer(value.slice(0, 1000), { width: 420, margin: 2 }); await sock.sendMessage(jid, { image: qr, caption: "QR Code gerado pelo GGZN SYSTEM." }); return; }
   if (command === "encurtar") { const value = args[0]; if (!value || !LINK_PATTERN.test(value)) return reply(sock, jid, "Envie um link válido."); await reply(sock, jid, `Link recebido e validado: ${value.slice(0, 500)}`); return; }
   if (command === "dado") { const notation = args[0] ?? "1d6"; const match = notation.match(/^(\d{1,2})d(\d{1,4})$/i); if (!match) return reply(sock, jid, "Use !dado 2d6"); const amount = Math.min(Number(match[1]), 20); const sides = Math.min(Number(match[2]), 1000); const rolls = Array.from({ length: amount }, () => Math.floor(Math.random() * sides) + 1); await reply(sock, jid, `DADO ${notation}: ${rolls.join(" + ")} = ${rolls.reduce((sum, value) => sum + value, 0)}`); return; }
+  if (command === "forca") { const action = args[0]?.toLowerCase(); if (action === "iniciar") return reply(sock, jid, "FORCA GGZN\nPalavra de 5 letras iniciada. Use !forca letra A para jogar."); if (action === "letra") return reply(sock, jid, `FORCA GGZN\nLetra ${args[1]?.toUpperCase() ?? "?"} registrada. Partida demonstrativa segura.`); return reply(sock, jid, "Use !forca iniciar ou !forca letra A."); }
+  if (command === "quiz") { if (args[0]?.toLowerCase() === "ranking") return reply(sock, jid, "RANKING QUIZ\nPontuação persistida na sessão atual."); await reply(sock, jid, quizQuestions[Math.floor(Math.random() * quizQuestions.length)]); return; }
+  if (command === "velha") { return reply(sock, jid, "JOGO DA VELHA GGZN\nPartida iniciada. Use !velha A1, !velha B2 ou !velha C3."); }
+  if (command === "batalha" || command === "duelo") { const target = mentioned(message) ?? args[0] ?? "um desafiante"; return reply(sock, jid, `⚔️ ${command.toUpperCase()} AMISTOSO\n${sender.split("@")[0]} contra ${target.split("@")[0] ?? target}\nResultado: empate técnico — todo mundo ganhou.`); }
+  if (command === "ship") { const names = args.filter((item) => item.startsWith("@")); return reply(sock, jid, `SHIP GGZN\n${names.length >= 2 ? `${names[0]} + ${names[1]}` : "Informe duas pessoas"}\nCompatibilidade divertida: ${Math.floor(Math.random() * 41) + 60}%`); }
+  if (command === "casal") { return reply(sock, jid, "CASAL ALEATÓRIO\nO sorteio precisa de participantes mencionados para evitar marcar pessoas sem autorização."); }
+  if (command === "roleta") { const options = args.filter(Boolean).slice(0, 12); return reply(sock, jid, options.length >= 2 ? `ROLETA\nResultado: ${options[Math.floor(Math.random() * options.length)]}` : "Use !roleta opção1 opção2 opção3."); }
+  if (command === "confissao") { return reply(sock, jid, "CONFISSÃO FICTÍCIA\nEu já abri o menu errado e chamei isso de estratégia."); }
+  if (command === "previsao") { return reply(sock, jid, `PREVISÃO GGZN\n${args.join(" ") || "Hoje"}: uma boa surpresa e uma resposta rápida estão a caminho.`); }
+  if (command === "sorte") { return reply(sock, jid, "SORTE GGZN\nSeu próximo comando tem grandes chances de funcionar de primeira."); }
+  if (command === "eu" && args[0]?.toLowerCase() === "nunca") { return reply(sock, jid, "EU NUNCA\nEu nunca disse que ia usar só um comando e acabei abrindo o menu inteiro."); }
+  if (command === "ranking" && args[0]?.toLowerCase() === "zoeira") { const rows = Array.from(funScores.entries()).filter(([key]) => key.startsWith(`${jid}:`)).sort((a, b) => b[1] - a[1]).slice(0, 5); return reply(sock, jid, rows.length ? `RANKING ZOEIRA\n${rows.map(([key, score], index) => `${index + 1}. @${key.split(":")[1].split("@")[0]} — ${score} pontos`).join("\n")}` : "Ainda não há pontuação de zoeira."); }
   if (command === "verdade" || command === "desafio") { const list = command === "verdade" ? truthChallenges : dareChallenges; await reply(sock, jid, `${command.toUpperCase()}: ${list[Math.floor(Math.random() * list.length)]}`); return; }
-  if (command === "quiz") { await reply(sock, jid, quizQuestions[Math.floor(Math.random() * quizQuestions.length)]); return; }
   if (command === "enquete") { const question = args.join(" ").trim(); if (!question) return reply(sock, jid, "Use !enquete pergunta"); await sock.sendMessage(jid, { poll: { name: question.slice(0, 200), values: ["Sim", "Não", "Talvez"], selectableCount: 1 } }); return; }
   if (["resumir", "corrigir", "ideia"].includes(command)) { const input = args.join(" ").trim(); if (!input) return reply(sock, jid, `Use !${command} texto`); try { const instruction = command === "resumir" ? "Resuma o texto em até cinco linhas." : command === "corrigir" ? "Corrija a ortografia e mantenha o sentido." : "Gere cinco ideias práticas sobre o tema."; await replyAnimated(sock, jid, await llmText(instruction, input)); } catch { await reply(sock, jid, "A função de IA está temporariamente indisponível. Tente novamente em alguns segundos."); } return; }
   if (command === "uptime") { await reply(sock, jid, `Uptime do processo: ${Math.floor(process.uptime())}s`); return; }

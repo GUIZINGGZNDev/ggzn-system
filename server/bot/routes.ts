@@ -1,5 +1,5 @@
 import type { Express } from "express";
-import { getBotState, getPhone, startBot } from "./manager";
+import { getBotState, getPhone, pauseBot, resumeBot, startBot } from "./manager";
 
 export function isPairingMaintenance() { return process.env.BOT_PAIRING_MAINTENANCE !== "false"; }
 
@@ -52,8 +52,15 @@ export function registerBotRoutes(app: Express) {
     }
   });
 
-  app.post("/api/bot/start", async (_req, res) => {
-    try { await startBot(); res.json({ success: true, ...getBotState() }); }
+  app.post("/api/bot/start", async (req, res) => {
+    if (!isOwnerRequest(req)) { res.status(403).json({ error: "Apenas o proprietário pode ativar o bot." }); return; }
+    try { await resumeBot(); res.json({ success: true, ...getBotState() }); }
     catch (error) { res.status(500).json({ error: error instanceof Error ? error.message : "Falha ao iniciar bot" }); }
+  });
+
+  app.post("/api/bot/pause", async (req, res) => {
+    if (!isOwnerRequest(req)) { res.status(403).json({ error: "Apenas o proprietário pode pausar o bot." }); return; }
+    try { await pauseBot(); res.json({ success: true, ...getBotState() }); }
+    catch (error) { res.status(500).json({ error: error instanceof Error ? error.message : "Falha ao pausar bot" }); }
   });
 }
