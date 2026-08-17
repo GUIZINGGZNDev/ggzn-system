@@ -36,6 +36,7 @@ const state = (globalRuntime[GLOBAL_RUNTIME_KEY] ??= { state: { status: "disconn
 export function pairingCodeIsActive(expiresAt?: number, now = Date.now()) { return Boolean(expiresAt && expiresAt > now); }
 export function issuePairingCode(code: string, now = Date.now()) { return { pairingCode: code, pairingIssuedAt: now, pairingExpiresAt: now + PAIRING_CODE_TTL_MS }; }
 export function singleFlight<T>(holder: { pending?: Promise<T> }, task: () => Promise<T>) { if (!holder.pending) holder.pending = task().finally(() => { holder.pending = undefined; }); return holder.pending; }
+export function isProcessableIncomingMessage(message: Pick<WAMessage, "key" | "message">) { return Boolean(message.key.remoteJid && !message.key.fromMe && message.message); }
 export function shouldRetryConnection(code: number | undefined, registered: boolean, attempts: number) {
   if (code === DisconnectReason.loggedOut || code === 401) return false;
   if (code === 440 && (!registered || attempts >= 3)) return false;
@@ -121,6 +122,8 @@ export async function startBot() {
         state.sock = undefined;
         const code = (lastDisconnect?.error as { output?: { statusCode?: number }; message?: string } | undefined)?.output?.statusCode;
         state.lastError = `connection closed: ${code ?? "unknown"}`;
+        state.qrDataUrl = undefined;
+        if (code === 401) console.warn("[GGZN] sessão encerrada; novo vínculo necessário para voltar a ler mensagens");
         console.warn(`[GGZN] connection closed code=${code ?? "unknown"}`);
         state.pairingReadyResolve?.();
         const attempts = state.reconnectAttempts ?? 0;
@@ -148,7 +151,8 @@ export async function startBot() {
         const command = commandLabel(message) ?? "unknown";
         console.info(`[GGZN][message][received] command=${command} jid=${jid ?? "unknown"}`);
         try {
-          if (jid && !message.key.fromMe) void sock.readMessages([message.key]).catch(() => undefined);
+          if (!isProcessableIncomingMessage(message)) return;
+          if (jid) void sock.readMessages([message.key]).catch(() => undefined);
           await handleIncomingMessage(sock, message);
         } catch (error) {
           console.error("[GGZN] message handler error", error);
@@ -198,6 +202,12 @@ export async function requestPairingCode() {
 
 export function getPhone() { return PHONE; }
 export function getConnectedSocket() { return state.status === "connected" ? state.sock : undefined; }
+export async function listConnectedGroups() {
+  const socket = getConnectedSocket();
+  if (!socket) return [];
+  const groups = await socket.groupFetchAllParticipating();
+  return Object.values(groups).map((group) => ({ jid: group.id, name: group.subject, participants: group.participants.length, announce: group.announce ?? false, restrict: group.restrict ?? false }));
+}
 
 export async function cloneGroup(sourceJid: string, options: { includeParticipants: boolean; copyPermissions: boolean }): Promise<CloneResult> {
   if (state.paused) throw new Error("O bot está pausado.");

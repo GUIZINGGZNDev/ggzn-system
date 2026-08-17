@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc";
 import { removeAutoReply, replaceRule, toggleAutoReply, toggleRule } from "./AdminPanel.helpers";
-import { ArrowLeft, Bot, Check, ChevronRight, Image as ImageIcon, Link2, LoaderCircle, Plus, Save, Shield, SlidersHorizontal, Trash2 } from "lucide-react";
+import { ArrowLeft, Bot, Check, ChevronRight, Image as ImageIcon, Link2, LoaderCircle, Plus, QrCode, RefreshCw, Save, Shield, SlidersHorizontal, Trash2, Wifi } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 
@@ -15,7 +15,8 @@ type AutoReply = { trigger: string; response: string; enabled: boolean };
 type FeatureConfig = { slowmodeSeconds: number; antiFlood: boolean; blockLinks: boolean; logs: boolean; warnings: Record<string, string[]> };
 
 export default function AdminPanel() {
-  const groups = trpc.botAdmin.listGroups.useQuery(undefined, { retry: false });
+  const groups = trpc.botAdmin.listGroups.useQuery(undefined, { retry: false, refetchInterval: 15000 });
+  const connection = trpc.botAdmin.connection.useQuery(undefined, { retry: false, refetchInterval: 5000 });
   const [selectedJid, setSelectedJid] = useState("");
   const group = trpc.botAdmin.getGroup.useQuery({ jid: selectedJid }, { enabled: Boolean(selectedJid), retry: false });
   const update = trpc.botAdmin.updateGroup.useMutation();
@@ -78,13 +79,15 @@ export default function AdminPanel() {
 
           {groups.isError ? <Card className="border-2 border-red-600 bg-red-50"><CardContent className="p-5 font-bold">Acesso negado ou sessão expirada. Entre com uma conta administradora para continuar.</CardContent></Card> : null}
 
+          <Card className="rounded-none border-2 border-black bg-white shadow-[4px_4px_0_#b7ff2a]"><CardContent className="grid gap-5 p-5 md:grid-cols-[1fr_auto] md:items-center"><div className="flex items-start gap-3"><div className={`mt-1 h-4 w-4 shrink-0 ${connection.data?.status === "connected" ? "bg-lime-300" : "bg-orange-300"}`} /><div><p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em]"><Wifi className="h-4 w-4" /> Conexão do bot</p><p className="mt-1 text-2xl font-black uppercase">{connection.data?.status === "connected" ? "Conectado" : connection.data?.status === "needs_pairing" ? "Aguardando QR" : "Aguardando vínculo"}</p><p className="font-mono text-xs text-black/60">Número: {connection.data?.phone ?? "—"} {connection.data?.lastError ? `· ${connection.data.lastError}` : ""}</p></div></div><div className="flex flex-wrap items-center gap-3"><Button onClick={() => void connection.refetch()} variant="outline" className="rounded-none border-2 border-black font-black uppercase"><RefreshCw className="mr-2 h-4 w-4" /> Atualizar estado</Button>{connection.data?.qrDataUrl ? <a href={connection.data.qrDataUrl} download="ggzn-system-qr.png" className="inline-flex min-h-10 items-center border-2 border-black bg-black px-4 text-sm font-black uppercase text-white hover:bg-lime-300 hover:text-black"><QrCode className="mr-2 h-4 w-4" /> Baixar QR</a> : <span className="text-xs font-black uppercase text-black/50">{connection.data?.status === "needs_pairing" ? "QR temporário indisponível nesta consulta" : "QR aparece quando a sessão solicitar vínculo"}</span>}</div></CardContent></Card>
+
           <div className="grid gap-5 lg:grid-cols-[280px_1fr]">
             <Card className="rounded-none border-2 border-black bg-white shadow-[6px_6px_0_#b7ff2a]">
               <CardHeader className="border-b-2 border-black"><CardTitle className="flex items-center gap-2 text-sm font-black uppercase"><Bot className="h-4 w-4" /> Grupos</CardTitle></CardHeader>
               <CardContent className="space-y-2 p-3">
                 {groups.isLoading ? <p className="p-2 text-sm font-bold">Carregando...</p> : null}
                 {!groups.isLoading && !groups.data?.length ? <p className="p-2 text-sm font-bold text-black/60">Nenhum grupo registrado ainda.</p> : null}
-                {groups.data?.map((item) => <button key={item.jid} onClick={() => setSelectedJid(item.jid)} aria-pressed={selectedJid === item.jid} className={`flex min-h-14 w-full items-center justify-between border-2 p-3 text-left transition ${selectedJid === item.jid ? "border-black bg-lime-300" : "border-transparent bg-black/5 hover:border-black"}`}><span className="min-w-0"><span className="block truncate font-black">{item.name}</span><span className="block truncate text-xs font-mono opacity-60">{item.jid}</span></span><ChevronRight className="h-4 w-4 shrink-0" /></button>)}
+                {groups.data?.map((item) => <button key={item.jid} onClick={() => setSelectedJid(item.jid)} aria-pressed={selectedJid === item.jid} className={`flex min-h-14 w-full items-center justify-between border-2 p-3 text-left transition ${selectedJid === item.jid ? "border-black bg-lime-300" : "border-transparent bg-black/5 hover:border-black"}`}><span className="min-w-0"><span className="block truncate font-black">{item.name}</span><span className="block truncate text-xs font-mono opacity-60">{item.jid}</span><span className="mt-1 block text-[10px] font-black uppercase opacity-60">{item.participants} membros · {item.announce ? "somente admins" : "aberto"}</span></span><ChevronRight className="h-4 w-4 shrink-0" /></button>)}
               </CardContent>
             </Card>
 

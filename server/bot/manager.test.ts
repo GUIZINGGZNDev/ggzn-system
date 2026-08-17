@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { issuePairingCode, pairingCodeIsActive, singleFlight, shouldRetryConnection } from "./manager";
+import { issuePairingCode, isProcessableIncomingMessage, pairingCodeIsActive, singleFlight, shouldRetryConnection } from "./manager";
 
 describe("GGZN pairing lifecycle", () => {
+  it("only forwards valid external messages to the handler", () => {
+    expect(isProcessableIncomingMessage({ key: { remoteJid: "group@g.us", fromMe: false }, message: { conversation: "!menu" } } as never)).toBe(true);
+    expect(isProcessableIncomingMessage({ key: { remoteJid: "group@g.us", fromMe: true }, message: { conversation: "!menu" } } as never)).toBe(false);
+    expect(isProcessableIncomingMessage({ key: { remoteJid: "group@g.us", fromMe: false }, message: undefined } as never)).toBe(false);
+    expect(isProcessableIncomingMessage({ key: { remoteJid: undefined, fromMe: false }, message: { conversation: "!menu" } } as never)).toBe(false);
+  });
   it("recognizes an active and expired code", () => {
     expect(pairingCodeIsActive(2000, 1000)).toBe(true);
     expect(pairingCodeIsActive(1000, 1000)).toBe(false);

@@ -3,7 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { adminProcedure, publicProcedure, router } from "./_core/trpc";
 import { listBotGroups, getOrCreateGroup, updateGroupConfig } from "./db";
-import { cloneGroup } from "./bot/manager";
+import { cloneGroup, getBotState, listConnectedGroups } from "./bot/manager";
 import { z } from "zod";
 
 export const appRouter = router({
@@ -21,7 +21,12 @@ export const appRouter = router({
   }),
 
   botAdmin: router({
-    listGroups: adminProcedure.query(() => listBotGroups()),
+    listGroups: adminProcedure.query(async () => {
+      const liveGroups = await listConnectedGroups();
+      if (liveGroups.length) return liveGroups;
+      return (await listBotGroups()).map((group) => ({ jid: group.jid, name: group.name, participants: 0, announce: false, restrict: false }));
+    }),
+    connection: adminProcedure.query(() => getBotState()),
     getGroup: adminProcedure.input(z.object({ jid: z.string().min(1).max(191) })).query(({ input }) => getOrCreateGroup(input.jid)),
     updateGroup: adminProcedure.input(z.object({
       jid: z.string().min(1).max(191),

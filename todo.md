@@ -446,3 +446,11 @@
 - [x] Normalizar JID, LID e identificadores com dispositivo
 - [x] Bloquear ações quando o bot não tiver privilégio administrativo
 - [x] Testar cargos, falhas de metadata e publicar
+
+- [ ] Gerar novo QR Code para reconectar a sessão
+- [ ] Confirmar vínculo e leitura de mensagens após o escaneamento
+
+- [x] Adicionar QR Code protegido dentro de Gerenciamento de Grupos
+- [x] Detectar e listar os grupos atuais do bot
+- [x] Mostrar estado de conexão e vínculo no painel
+- [x] Testar rotas, painel, QR e listagem de grupos
