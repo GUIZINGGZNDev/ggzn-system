@@ -350,11 +350,11 @@
 - [x] Validar TypeScript, Vitest, build e publicar a nova versão
 
 
-- [ ] Diagnosticar sessão conectada sem processamento de mensagens
-- [ ] Verificar listener `messages.upsert`, filtros `fromMe` e estado do socket
-- [ ] Corrigir o fluxo de recebimento sem gerar novo QR desnecessariamente
-- [ ] Adicionar regressões para mensagens recebidas e reconexão
-- [ ] Validar TypeScript, Vitest, build e publicar a correção
+- [x] Diagnosticar sessão conectada sem processamento de mensagens
+- [x] Verificar listener `messages.upsert`, filtros `fromMe` e estado do socket
+- [x] Corrigir o fluxo de recebimento sem gerar novo QR desnecessariamente
+- [x] Adicionar regressões para mensagens recebidas e reconexão
+- [x] Validar TypeScript, Vitest, build e publicar a correção
 
 
 - [x] Promover o número confirmado `5534998788431` a Administrador no grupo da mensagem `!id`
