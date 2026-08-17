@@ -414,3 +414,10 @@
 - [x] Integrar estados, feedbacks e proteção dos novos controles
 - [x] Atualizar testes de painel, endpoints e contratos de menus/fotos
 - [x] Validar responsividade, build e publicar a expansão
+
+- [x] Implementar clonagem assistida de grupo com confirmação owner/admin
+- [x] Copiar nome, foto, descrição, regras e configurações permitidas
+- [x] Tratar limites de membros, permissões e falhas da API do WhatsApp
+- [x] Adicionar fluxo de clonagem ao painel administrativo
+- [x] Cobrir permissões, confirmação, cópia de configurações e rollback lógico
+- [x] Validar TypeScript, Vitest, build e publicar a função

@@ -5,6 +5,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { updateSession } from "../db";
 import { commandLabel, handleGroupParticipantsUpdate, handleIncomingMessage } from "./commands";
+import { cloneWhatsAppGroup, type CloneResult } from "./groupClone";
 
 const PHONE = (process.env.BOT_PHONE ?? "5534991286637").replace(/\D/g, "");
 const SESSION_DIR = path.resolve(process.env.BOT_SESSION_DIR ?? ".bot-session");
@@ -197,3 +198,10 @@ export async function requestPairingCode() {
 
 export function getPhone() { return PHONE; }
 export function getConnectedSocket() { return state.status === "connected" ? state.sock : undefined; }
+
+export async function cloneGroup(sourceJid: string, options: { includeParticipants: boolean }): Promise<CloneResult> {
+  if (state.paused) throw new Error("O bot está pausado.");
+  const socket = getConnectedSocket();
+  if (!socket) throw new Error("O bot precisa estar conectado para clonar um grupo.");
+  return cloneWhatsAppGroup(socket, sourceJid, options);
+}

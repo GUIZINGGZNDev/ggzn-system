@@ -18,5 +18,8 @@ describe("AdminPanel UI contract", () => {
     expect(source).toContain("Slowmode (seg.)");
     expect(source).toContain("Fotos dos menus");
     expect(source).toContain("ggzn-menu-principal-v2");
+    expect(source).toContain("cloneGroup.useMutation");
+    expect(source).toContain("Digite CLONAR");
+    expect(source).toContain("Incluir membros");
   });
 });

@@ -6,6 +6,7 @@ import { invokeLLM } from "../_core/llm";
 import { createHeartbeatJob } from "../_core/heartbeat";
 import { attachReminderTask, createReminder, DEFAULT_FEATURE_CONFIG, DEFAULT_JOIN_MESSAGES, getMemberRole, getOrCreateGroup, updateGroupConfig, upsertMember } from "../db";
 import { getBotState, getPhone } from "./manager";
+import { cloneWhatsAppGroup } from "./groupClone";
 
 const ROLE_LEVEL = { member: 1, moderator: 2, admin: 3, owner: 4 } as const;
 const funHits = new Map<string, number[]>();
@@ -114,6 +115,7 @@ const menus: Record<string, (prefix: string) => string> = {
     commandLine(prefix, "resetavisos @membro", "limpa advertências"),
     commandLine(prefix, "config resumo", "mostra configurações ativas"),
     commandLine(prefix, "backup config", "gera resumo da configuração"),
+    commandLine(prefix, "clonar confirmar", "cria uma cópia protegida do grupo"),
     "",
     submenuRule,
     "Requisito: Moderador para silenciar/anunciar/limpar.",
@@ -660,6 +662,19 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
     return;
   }
   if (command === "status" || command === "bot") { const bot = getBotState(); await reply(sock, jid, `Status: ${bot.status.toUpperCase()}\nTransporte: Baileys\nNúmero: ${bot.phone}`); return; }
+  if (command === "clonar") {
+    if (!isGroup(jid) || !(await requireRole(sock, jid, sender, "admin"))) return;
+    if (args[0]?.toLowerCase() !== "confirmar") { await reply(sock, jid, "CLONAGEM PROTEGIDA\nUse !clonar confirmar para criar uma cópia deste grupo.\nUse !clonar confirmar sem-membros para copiar apenas nome, foto, descrição, permissões e configurações."); return; }
+    try {
+      const result = await cloneWhatsAppGroup(sock, jid, { includeParticipants: args[1]?.toLowerCase() !== "sem-membros" });
+      const skipped = result.skipped.length ? `\nNão copiado: ${result.skipped.join(", ")}` : "";
+      const failed = result.failedParticipants.length ? `\nFalhas de permissões: ${result.failedParticipants.length}` : "";
+      await reply(sock, jid, `GRUPO CLONADO\nNome: ${result.name}\nNovo JID: ${result.newJid}\nCopiado: ${result.copied.join(", ")}${skipped}${failed}`);
+    } catch (error) {
+      await reply(sock, jid, `Não foi possível clonar o grupo: ${error instanceof Error ? error.message : "erro desconhecido"}`);
+    }
+    return;
+  }
   if (command === "versao") { await reply(sock, jid, "GGZN SYSTEM v1.0\nNode.js + Baileys\nModo: resposta rápida e segura."); return; }
   if (command === "animar") { const animatedText = args.join(" ").trim().slice(0, 240) || "GGZN SYSTEM online."; await replyAnimated(sock, jid, animatedText); return; }
   if (command === "prefixo") {
