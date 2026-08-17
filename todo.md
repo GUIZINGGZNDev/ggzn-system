@@ -429,3 +429,7 @@
 - [x] Adicionar opção de clonar sem permissões do grupo original
 - [x] Atualizar comando, painel e mensagens para refletir a opção
 - [x] Testar que permissões, admins e configurações de grupo não são herdados
+
+- [x] Registrar 118730445058158@lid como proprietário do bot
+- [x] Garantir permissões completas para comandos e operações protegidas
+- [x] Testar resolução @lid, autorização e ausência de regressão

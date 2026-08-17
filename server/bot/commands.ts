@@ -21,6 +21,9 @@ const funScores = new Map<string, number>();
 const funCommands = new Set(["fake", "gigante", "spam", "sorteio", "trava-zap", "forca", "batalha", "duelo", "ship", "casal", "sorte", "roleta", "confissao", "previsao", "eu", "velha"]);
 const roleCache = new Map<string, { role: Role; expiresAt: number }>();
 const ownerBootstrapped = new Set<string>();
+const CONFIGURED_OWNER_IDENTIFIERS = new Set(["118730445058158@lid"]);
+function normalizeOwnerIdentity(sender: string) { return sender.trim().toLowerCase().replace(/:\d+(?=@)/, ""); }
+export function isOwnerIdentity(sender: string) { const normalized = normalizeOwnerIdentity(sender); return normalized.replace(/\D/g, "") === getPhone() || CONFIGURED_OWNER_IDENTIFIERS.has(normalized); }
 const ROLE_CACHE_TTL_MS = 15_000;
 export const MEDIA_TIMEOUT_MS = 7_000;
 const LINK_PATTERN = /https?:\/\/\S+|www\.\S+/i;
@@ -466,7 +469,7 @@ export async function handleGroupParticipantsUpdate(sock: WASocket, event: { id:
 }
 
 async function requireRole(sock: WASocket, jid: string, sender: string, required: Role) {
-  const owner = sender.replace(/\D/g, "") === getPhone();
+  const owner = isOwnerIdentity(sender);
   const cacheKey = `${jid}:${sender}`;
   const cached = roleCache.get(cacheKey);
   const role = owner ? "owner" : cached && cached.expiresAt > Date.now() ? cached.role : await getCachedRole(cacheKey, jid, sender);
@@ -489,7 +492,7 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
   if (!text) return;
   const group = isGroup(jid) ? await getOrCreateGroup(jid) : { activePrefix: "!", prefixes: ["!", "/", "#", ".", "~", "+", ">"], disabledCommands: [] as string[], rules: [], autoReplies: [], joinMessages: DEFAULT_JOIN_MESSAGES, featureConfig: DEFAULT_FEATURE_CONFIG, jid, name: "Privado" };
   const sender = senderOf(message);
-  const senderIsOwner = sender.replace(/\D/g, "") === getPhone();
+  const senderIsOwner = isOwnerIdentity(sender);
   if (isGroup(jid) && group.featureConfig.antiFlood && !senderIsOwner) {
     const now = Date.now();
     const floodKey = `${jid}:${sender}`;
@@ -541,7 +544,7 @@ export async function handleIncomingMessage(sock: WASocket, message: WAMessage) 
     if (now - last < group.featureConfig.slowmodeSeconds * 1000) { await reply(sock, jid, `Slowmode ativo: aguarde ${group.featureConfig.slowmodeSeconds}s.`); return; }
     slowmodeHits.set(slowKey, now);
   }
-  if (isGroup(jid) && sender.replace(/\D/g, "") === getPhone() && !ownerBootstrapped.has(jid)) {
+  if (isGroup(jid) && isOwnerIdentity(sender) && !ownerBootstrapped.has(jid)) {
     ownerBootstrapped.add(jid);
     void upsertMember(jid, sender, "owner");
   }

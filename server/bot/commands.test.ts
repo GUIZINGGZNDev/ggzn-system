@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { WASocket, WAMessage } from "@whiskeysockets/baileys";
-import { applyPrefixAction, atLeast, calculate, formatJoinMessage, getMainMenu, getMenu, handleGroupParticipantsUpdate, handleIncomingMessage, MENU_NUMBER_MAP, moderationEffect, parseReminderDelay, requiredRoleForCommand, safeZoeiraResponse, withTimeout, MEDIA_TIMEOUT_MS } from "./commands";
+import { applyPrefixAction, atLeast, calculate, formatJoinMessage, getMainMenu, getMenu, handleGroupParticipantsUpdate, handleIncomingMessage, isOwnerIdentity, MENU_NUMBER_MAP, moderationEffect, parseReminderDelay, requiredRoleForCommand, safeZoeiraResponse, withTimeout, MEDIA_TIMEOUT_MS } from "./commands";
 import { getOrCreateGroup } from "../db";
 
 function ownerMessage(text: string, quoted = false) {
@@ -19,6 +19,12 @@ function mockSocket() {
 }
 
 describe("GGZN command permissions", () => {
+  it("recognizes the configured owner LID with full owner privileges", () => {
+    expect(isOwnerIdentity("118730445058158@lid")).toBe(true);
+    expect(isOwnerIdentity("118730445058158:7@lid")).toBe(true);
+    expect(isOwnerIdentity("118730445058159@lid")).toBe(false);
+    expect(atLeast("owner", "owner")).toBe(true);
+  });
   it("parses safe reminder durations", () => {
     expect(parseReminderDelay("10m")).toBe(600000);
     expect(parseReminderDelay("2h")).toBe(7200000);
