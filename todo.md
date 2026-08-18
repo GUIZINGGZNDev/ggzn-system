@@ -454,3 +454,7 @@
 - [x] Detectar e listar os grupos atuais do bot
 - [x] Mostrar estado de conexão e vínculo no painel
 - [x] Testar rotas, painel, QR e listagem de grupos
+
+- [ ] Preparar exportação segura para repositório privado do GitHub
+- [x] Criar guia de instalação e operação no Termux
+- [x] Validar que sessão, segredos e arquivos locais não serão versionados
