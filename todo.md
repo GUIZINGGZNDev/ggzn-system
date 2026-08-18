@@ -458,3 +458,5 @@
 - [ ] Preparar exportação segura para repositório privado do GitHub
 - [x] Criar guia de instalação e operação no Termux
 - [x] Validar que sessão, segredos e arquivos locais não serão versionados
+
+- [ ] Tentar exportar agora o projeto para um repositório privado no GitHub

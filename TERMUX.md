@@ -43,11 +43,10 @@ Adicione a chave pública em **GitHub → Settings → SSH and GPG keys** e clon
 ```bash
 cd $HOME/ggzn-system
 pnpm install --frozen-lockfile
-cp .env.example .env
 nano .env
 ```
 
-O arquivo `.env` deve conter somente os valores fornecidos no painel de segredos do projeto. Em particular, mantenha privados `DATABASE_URL`, `JWT_SECRET`, `BUILT_IN_FORGE_API_KEY`, `OAUTH_SERVER_URL`, `OWNER_OPEN_ID`, `OWNER_NAME` e as configurações do bot. Se a instalação do Termux for independente da hospedagem Manus, será necessário fornecer os serviços externos e o banco compatíveis com essa execução; copiar o `.env` de produção sem revisão não é recomendado.
+Crie o arquivo `.env` manualmente; ele não deve ser commitado. O arquivo deve conter somente os valores fornecidos no painel de segredos do projeto. Em particular, mantenha privados `DATABASE_URL`, `JWT_SECRET`, `BUILT_IN_FORGE_API_KEY`, `OAUTH_SERVER_URL`, `OWNER_OPEN_ID`, `OWNER_NAME` e as configurações do bot. Se a instalação do Termux for independente da hospedagem Manus, será necessário fornecer os serviços externos e o banco compatíveis com essa execução; copiar o `.env` de produção sem revisão não é recomendado.
 
 Defina também um diretório de sessão fora do repositório:
 
